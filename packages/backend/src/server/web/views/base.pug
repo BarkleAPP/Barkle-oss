@@ -1,0 +1,245 @@
+block vars
+block loadClientEntry
+ - const clientEntry = getClientEntry();
+doctype html
+html
+ - var timestamp = Date.now();
+head
+    //- CRITICAL META TAGS - Must be first for mobile optimization
+    meta(charset='utf-8')
+    meta(name='viewport' content='width=device-width, initial-scale=1, viewport-fit=cover')
+    meta(name='description' content= desc || 'Bark it out on Barkle! Join the premier microblogging platform connecting millions through conversations, communities, and shared interests. Real-time social networking reimagined.')
+    
+    meta(name='application-name' content='Barkle')
+    meta(name='referrer' content='origin')
+    meta(name='darkreader-lock' content='')
+    meta(name='theme-color' content= themeColor || '#31748f')
+    meta(name='theme-color-orig' content= themeColor || '#31748f')
+    
+    //- Enhanced SEO Meta Tags
+    meta(property='og:locale' content='en_US')
+    meta(property='og:locale:alternate' content='en_GB')
+    meta(property='og:locale:alternate' content='en_CA')
+    meta(name='twitter:creator' content= twitterCreator || '@BarkleChat')
+    meta(name='twitter:site' content='@BarkleChat')
+    meta(name='twitter:image' content= img)
+    meta(name='twitter:image:alt' content='Barkle - Social Microblogging Platform')
+    link(rel='canonical' href= canonicalUrl || 'https://barkle.chat')
+    
+    //- Advanced Open Graph
+    meta(property='twitter:card' content='summary_large_image')
+    meta(property='twitter:domain' content='barkle.chat')
+    meta(property='og:site_name' content= instanceName || 'Barkle')
+    meta(property='og:type' content='website')
+    meta(property='article:publisher' content='https://barkle.chat')
+    meta(property='article:author' content='Barkle Team')
+    meta(property='og:updated_time' content=new Date().toISOString())
+    
+    //- Schema.org structured data
+    if typeof note !== 'undefined' && note
+        //- Individual bark/note Schema.org
+        script(type='application/ld+json')
+            | {
+            |   "@context": "https://schema.org",
+            |   "@type": "SocialMediaPosting",
+            |   "headline": "#{summary ? summary.replace(/"/g, '\\"').substring(0, 110) : 'Bark on Barkle'}",
+            |   "url": "#{barkUrl ? config.url + barkUrl : (url || (config.url + '/notes/' + note.id))}",
+            |   "datePublished": "#{note.createdAt}",
+            |   "dateModified": "#{note.updatedAt || note.createdAt}",
+            if note.text
+                |   "articleBody": "#{note.text.replace(/"/g, '\\"').substring(0, 500)}",
+            if note.files && note.files.length > 0
+                |   "image": !{JSON.stringify(note.files.map(f => ({ "@type": "ImageObject", "url": f.url, "width": f.properties ? f.properties.width : undefined, "height": f.properties ? f.properties.height : undefined })))},
+            |   "description": "#{summary ? summary.substring(0, 160) : 'Bark on Barkle'}",
+            |   "author": {
+            |     "@type": "Person",
+            |     "name": "#{note.user.name || note.user.username}",
+            |     "url": "#{config.url}/@#{note.user.username}"
+            if avatarUrl
+                |     ,"image": "#{avatarUrl}"
+            |   },
+            |   "publisher": {
+            |     "@type": "Organization",
+            |     "name": "Barkle",
+            |     "url": "https://barkle.chat",
+            |     "logo": {
+            |       "@type": "ImageObject",
+            |       "url": "https://barkle.chat/static-assets/splash.png"
+            |     }
+            |   }
+            | }
+    else
+        //- General website Schema.org
+        script(type='application/ld+json')
+            | {
+            |   "@context": "https://schema.org",
+            |   "@type": "WebSite",
+            |   "name": "Barkle",
+            |   "url": "https://barkle.chat",
+            |   "description": "#{desc || 'Bark it out on Barkle! The premier microblogging platform for real-time conversations and community building.'}",
+            |   "potentialAction": {
+            |     "@type": "SearchAction",
+            |     "target": "https://barkle.chat/search?q={search_term_string}",
+            |     "query-input": "required name=search_term_string"
+            |   },
+            |   "sameAs": [
+            |     "https://twitter.com/BarkleChat",
+            |     "https://github.com/BarkleAPP/Barkle-oss"
+            |   ],
+            |   "author": {
+            |     "@type": "Organization",
+            |     "name": "Barkle",
+            |     "url": "https://barkle.chat"
+            |   },
+            |   "publisher": {
+            |     "@type": "Organization",
+            |     "name": "Barkle",
+            |     "url": "https://barkle.chat",
+            |     "logo": {
+            |       "@type": "ImageObject",
+            |       "url": "https://barkle.chat/static-assets/splash.png"
+            |     }
+            |   }
+            | }
+    //- HYPER-AGGRESSIVE SEO META TAGS
+    meta(name='keywords' content= keywords || 'Barkle, microblogging, social media, chat, community, real-time, conversations, networking, barkle.chat, social platform, twitter alternative, decentralized social')
+    
+    //- Aggressive SEO signals
+    meta(name='author' content='Barkle Team')
+    meta(name='robots' content='index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1')
+    meta(name='googlebot' content='index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1')
+    meta(name='bingbot' content='index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1')
+    meta(name='rating' content='general')
+    meta(name='revisit-after' content='1 day')
+    meta(name='distribution' content='global')
+    meta(name='language' content='en')
+    meta(name='geo.region' content='US')
+    meta(name='geo.placename' content='United States')
+    meta(name='news_keywords' content='social media, microblogging, community, technology, social networking')
+    
+    //- Performance & Technical SEO
+    meta(http-equiv='X-UA-Compatible' content='IE=edge')
+    meta(name='format-detection' content='telephone=no')
+    meta(name='msapplication-tap-highlight' content='no')
+    meta(name='mobile-web-app-capable' content='yes')
+    meta(name='apple-mobile-web-app-capable' content='yes')
+    meta(name='apple-mobile-web-app-status-bar-style' content='black-translucent')
+    
+    //- MODERATE RESOURCE OPTIMIZATION - Keep performance but preserve UI
+    link(rel='preconnect' href='https://fonts.googleapis.com')
+    link(rel='preconnect' href='https://fonts.gstatic.com' crossorigin)
+    link(rel='preconnect' href='https://media.barkle.chat')
+    
+    //- DNS prefetch for analytics
+    link(rel='dns-prefetch' href='https://static.cloudflareinsights.com')
+    
+    //- Essential resource optimization only
+    link(rel='modulepreload' href=`/assets/${clientEntry.file}`)
+    
+    //- Preload critical images with modern formats
+    link(rel='preload' as='image' type='image/webp' href= splashIcon || `/static-assets/splash.webp?${ timestamp }`)
+    link(rel='preload' as='image' type='image/avif' href= splashIcon || `/static-assets/splash.avif?${ timestamp }`)
+    
+    link(rel='icon' href= icon || `/favicon.ico?${ timestamp }`)
+    link(rel='apple-touch-icon' href= icon || `/apple-touch-icon.png?${ timestamp }`)
+    link(rel='manifest' href='/manifest.json')
+    link(rel='prefetch' href=`/static-assets/badges/info.png?${ timestamp }`)
+    link(rel='prefetch' href=`/static-assets/badges/not-found.png?${ timestamp }`)
+    link(rel='prefetch' href=`/static-assets/badges/error.png?${ timestamp }`)
+    
+    //- MINIMAL CRITICAL CSS - Only essential splash screen styles
+    style.
+        /* Only critical splash screen styles to prevent layout shift */
+        #splash { 
+            position: fixed; 
+            inset: 0; 
+            background: var(--bg, #000); 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            z-index: 10000; 
+            opacity: 1; 
+        }
+        
+        #splashIcon { 
+            width: 64px; 
+            height: 64px; 
+            margin-bottom: 16px; 
+        }
+        
+        #splashText { 
+            font-size: 16px; 
+            margin-bottom: 24px;
+        }
+        
+        .spinner { 
+            width: 32px; 
+            height: 32px;
+        }
+        
+        .spinner svg { 
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin { 
+            0% { transform: rotate(0deg); } 
+            100% { transform: rotate(360deg); } 
+        }
+        
+    //- Load CSS normally to preserve UI functionality
+    if Array.isArray(clientEntry.css)
+        each href in clientEntry.css
+            link(rel='stylesheet' href=`/assets/${href}`)
+    
+    //- Load fonts and instance CSS normally
+    link(rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap')
+    link(rel='stylesheet' href=`/static-assets/instance.css?${ timestamp }`)
+    title
+     block title
+       = title || 'Barkle'
+    block desc
+        //- Description is now handled above in head section
+    block meta
+        if privateMode
+            meta(name='robots' content='noindex')
+    block og
+        meta(property='og:title' content= title || 'Barkle')
+        meta(property='og:description' content= desc || 'Bark it out on Barkle!')
+        meta(property='og:image' content= img)
+        meta(property='og:url' content= 'https://barkle.chat')
+        meta(property='og:type' content= 'website')
+    
+    style
+        include ../style.css
+    script(nonce=nonce).
+        var VERSION = "#{version}";
+        var CLIENT_ENTRY = "#{clientEntry.file}";
+        
+    script(nonce=nonce)
+        include ../boot.js
+body
+    noscript: p
+        | JavaScriptを有効にしてください
+        br
+        | Please turn on your JavaScript
+    div#splash
+        picture
+            source(type='image/avif' srcset= splashIcon || `/static-assets/splash.avif?${ timestamp }`)
+            source(type='image/webp' srcset= splashIcon || `/static-assets/splash.webp?${ timestamp }`)
+            img#splashIcon(src= splashIcon || `/static-assets/splash.png?${ timestamp }` alt='Barkle Logo' decoding='async')
+        span#splashText
+            block randomMOTD
+                = randomMOTD
+        div#splashSpinner
+            <svg class="spinner bg" viewBox="0 0 152 152" xmlns="http://www.w3.org/2000/svg">
+                <g transform="matrix(1,0,0,1,12,12)">
+                    <circle cx="64" cy="64" r="64" style="fill:none;stroke:currentColor;stroke-width:24px;"/>
+                </g>
+            </svg>
+            <svg class="spinner fg" viewBox="0 0 152 152" xmlns="http://www.w3.org/2000/svg">
+                <g transform="matrix(1,0,0,1,12,12)">
+                    <path d="M128,64C128,28.654 99.346,0 64,0C99.346,0 128,28.654 128,64Z" style="fill:none;stroke:currentColor;stroke-width:24px;"/>
+                </g>
+            </svg>
+    block content

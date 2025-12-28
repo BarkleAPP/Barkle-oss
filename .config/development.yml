@@ -1,0 +1,80 @@
+#━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Barkle V4 Development Configuration
+#━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Final accessible URL seen by a user - using localhost for development
+url: http://localhost:3000/
+
+# Port that Barkle should listen on
+port: 3000
+
+#   ┌──────────────────────────┐
+#───┘ PostgreSQL configuration └────────────────────────────────
+
+db:
+  host: barkle_db
+  port: 5432
+
+  # Database name
+  db: barkle-v4
+
+  # Auth
+  user: barkle-dev-user
+  pass: barkle-dev-pass
+
+  # For best performance
+  disableCache: false
+
+#   ┌─────────────────────┐
+#───┘ Redis configuration └─────────────────────────────────────
+
+redis:
+  host: barkle_redis
+  port: 6379
+
+  # Password
+  pass: null
+
+# Use Redis for job queuing (recommended for development)
+useRedisJobQueue: true
+
+# Disable HSTS
+disableHsts: true
+
+# For development environment
+cacheRemoteFiles: false
+
+# Skip waiting for dependencies to be ready (helpful for Docker)
+skipCheckDependencies: true
+
+# Proxy settings for development
+proxy: false
+proxySmtp: false
+
+# Media Proxy
+mediaProxy: false
+proxyRemoteFiles: false
+
+# Sign to ActivityPub GET request (default: true)
+signToActivityPubGet: true
+
+# User data handling
+localUsersOnly: true
+disableRegistration: false
+disableLocalTimeline: false
+disableRecommendedTimeline: false
+
+# Simplified media handling for development
+disableServerStats: true
+cacheRemoteFiles: false
+
+# Development logging
+verbose: true
+logLevel: "debug"
+
+proxyBypassHosts:
+  - api.deepl.com
+  - api-free.deepl.com
+  - www.recaptcha.net
+  - hcaptcha.com
+  - challenges.cloudflare.com

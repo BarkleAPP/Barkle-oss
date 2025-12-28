@@ -1,0 +1,51 @@
+authtoken.txt
+/.config/default.yml
+.yarn
+.pnp.cjs
+yarn.lock
+.pnp.loader.mjs
+built
+node_modules
+typescript-go
+pnpm-lock.yaml
+build
+dist
+bun.lock
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+
+# Build artifacts
+coverage/
+.nyc_output/

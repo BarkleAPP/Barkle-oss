@@ -1,0 +1,401 @@
+name: Deploy Barkle (Blue-Green with Nginx Templates)
+on:
+  push:
+    branches: [ main ]
+
+# Prevent concurrent deployments - cancel in-progress runs
+concurrency:
+  group: barkle-deployment
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: '1.2.22'
+      - name: Deploy via SSH using Nginx Templates
+        uses: appleboy/ssh-action@v0.1.6
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: almalinux
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          timeout: 45m
+          command_timeout: 45m
+          script: |
+            set -e
+            # --- Define Environment Variables ---
+            BLUE_DIR="/home/almalinux/Barkle-V4-blue"
+            GREEN_DIR="/home/almalinux/Barkle-V4-green"
+            NGINX_ACTIVE_CONFIG="/etc/nginx/conf.d/barkle.chat.conf"
+            STATE_FILE="/home/almalinux/barkle_live_env"
+            BLUE_PORT=3000
+            GREEN_PORT=3001
+            BLUE_CONFIG_SOURCE="/home/almalinux/.config_blue"
+            GREEN_CONFIG_SOURCE="/home/almalinux/.config_green"
+            REPO_URL="git@github.com:Avunite/Barkle-V4.git"
+            
+            # 0. Pre-deployment validation
+            echo "🔍 Performing pre-deployment validation..."
+            
+            # Check if both instances are somehow running (should never happen)
+            BLUE_RUNNING=$(sudo systemctl is-active --quiet "barkle-blue.service" && echo "true" || echo "false")
+            GREEN_RUNNING=$(sudo systemctl is-active --quiet "barkle-green.service" && echo "true" || echo "false")
+            
+            if [ "$BLUE_RUNNING" = "true" ] && [ "$GREEN_RUNNING" = "true" ]; then
+              echo "⚠️ WARNING: Both instances are running! This should never happen."
+              echo "🔍 Determining which instance should be stopped..."
+              
+              # Read state file to determine which instance should be live
+              if [ -f "${STATE_FILE}" ]; then
+                EXPECTED_LIVE=$(cat "${STATE_FILE}")
+              else
+                # Default to green being live if no state file exists
+                EXPECTED_LIVE="green"
+              fi
+              
+              # Validate expected live environment
+              if [ "$EXPECTED_LIVE" != "blue" ] && [ "$EXPECTED_LIVE" != "green" ]; then
+                echo "⚠️ Invalid state file content: ${EXPECTED_LIVE}. Defaulting to green."
+                EXPECTED_LIVE="green"
+              fi
+              
+              echo "📄 Expected live instance: ${EXPECTED_LIVE}"
+              
+              # Stop the instance that shouldn't be running
+              if [ "$EXPECTED_LIVE" = "blue" ]; then
+                echo "🛑 Stopping green instance (should not be running)..."
+                sudo systemctl stop barkle-green.service
+                sleep 5
+                if sudo systemctl is-active --quiet "barkle-green.service"; then
+                  echo "⚠️ WARNING: Failed to stop green instance on first attempt. Retrying..."
+                  sudo systemctl stop barkle-green.service
+                  sleep 5
+                fi
+                if sudo systemctl is-active --quiet "barkle-green.service"; then
+                  echo "❌ CRITICAL: Cannot stop green instance. Manual intervention required."
+                  exit 1
+                fi
+                echo "✅ Green instance stopped. Blue remains live."
+              else
+                echo "🛑 Stopping blue instance (should not be running)..."
+                sudo systemctl stop barkle-blue.service
+                sleep 5
+                if sudo systemctl is-active --quiet "barkle-blue.service"; then
+                  echo "⚠️ WARNING: Failed to stop blue instance on first attempt. Retrying..."
+                  sudo systemctl stop barkle-blue.service
+                  sleep 5
+                fi
+                if sudo systemctl is-active --quiet "barkle-blue.service"; then
+                  echo "❌ CRITICAL: Cannot stop blue instance. Manual intervention required."
+                  exit 1
+                fi
+                echo "✅ Blue instance stopped. Green remains live."
+              fi
+              
+              echo "ℹ️ Recovered from dual-instance state. Continuing with deployment..."
+            fi
+            
+            # Check if no instances are running (also bad)
+            if [ "$BLUE_RUNNING" = "false" ] && [ "$GREEN_RUNNING" = "false" ]; then
+              echo "⚠️ WARNING: No instances are currently running. This may indicate a previous deployment failure."
+              echo "ℹ️ Continuing with deployment..."
+            fi
+            
+            echo "✅ Pre-deployment validation passed."
+            
+            # 1. Determine which environment is live
+            echo "🔎 Checking which instance is live..."
+            if [ -f "${STATE_FILE}" ]; then
+              CURRENT_LIVE_ENV=$(cat "${STATE_FILE}")
+              echo "📄 State file exists. Current live environment: ${CURRENT_LIVE_ENV}"
+            else
+              CURRENT_LIVE_ENV="green"
+              echo "📄 State file does not exist. Defaulting to green (first deploy will go to blue)"
+            fi
+            
+            # Validate current live environment
+            if [ "$CURRENT_LIVE_ENV" != "blue" ] && [ "$CURRENT_LIVE_ENV" != "green" ]; then
+              echo "❌ Invalid current live environment: ${CURRENT_LIVE_ENV}. Defaulting to green."
+              CURRENT_LIVE_ENV="green"
+            fi
+            
+            # 1.5. Error Detection: Check for instances that should be offline
+            echo "🔍 Checking for improperly running instances..."
+            if [ "$CURRENT_LIVE_ENV" = "blue" ]; then
+              # Blue should be live, Green should be offline
+              if sudo systemctl is-active --quiet "barkle-green.service"; then
+                echo "⚠️ WARNING: Green instance is running when it should be offline!"
+                echo "🛑 Stopping incorrectly running green instance..."
+                sudo systemctl stop "barkle-green.service"
+                sleep 5
+                if sudo systemctl is-active --quiet "barkle-green.service"; then
+                  echo "❌ Failed to stop green instance. Aborting deployment."
+                  exit 1
+                fi
+                echo "✅ Green instance stopped successfully."
+              fi
+            else
+              # Green should be live, Blue should be offline
+              if sudo systemctl is-active --quiet "barkle-blue.service"; then
+                echo "⚠️ WARNING: Blue instance is running when it should be offline!"
+                echo "🛑 Stopping incorrectly running blue instance..."
+                sudo systemctl stop "barkle-blue.service"
+                sleep 5
+                if sudo systemctl is-active --quiet "barkle-blue.service"; then
+                  echo "❌ Failed to stop blue instance. Aborting deployment."
+                  exit 1
+                fi
+                echo "✅ Blue instance stopped successfully."
+              fi
+            fi
+            
+            if [ "$CURRENT_LIVE_ENV" = "blue" ]; then
+              echo "➡️ Blue is LIVE. Deploying to GREEN on port ${GREEN_PORT}."
+              DEPLOY_ENV="green"
+              DEPLOY_DIR="$GREEN_DIR"
+              DEPLOY_PORT=$GREEN_PORT
+              DEPLOY_SERVICE="barkle-green.service"
+              NGINX_TEMPLATE_SOURCE="/home/almalinux/nginx_green.conf"
+              OLD_SERVICE="barkle-blue.service"
+              CONFIG_SOURCE="$GREEN_CONFIG_SOURCE"
+            else
+              echo "➡️ Green is LIVE. Deploying to BLUE on port ${BLUE_PORT}."
+              DEPLOY_ENV="blue"
+              DEPLOY_DIR="$BLUE_DIR"
+              DEPLOY_PORT=$BLUE_PORT
+              DEPLOY_SERVICE="barkle-blue.service"
+              NGINX_TEMPLATE_SOURCE="/home/almalinux/nginx_blue.conf"
+              OLD_SERVICE="barkle-green.service"
+              CONFIG_SOURCE="$BLUE_CONFIG_SOURCE"
+            fi
+            # 2. Validate deployment target
+            echo "🔍 Validating deployment target..."
+            if [ "$DEPLOY_ENV" = "blue" ]; then
+              if [ "$DEPLOY_DIR" != "$BLUE_DIR" ] || [ "$DEPLOY_PORT" != "$BLUE_PORT" ]; then
+                echo "❌ Blue environment configuration mismatch. Aborting."
+                exit 1
+              fi
+            elif [ "$DEPLOY_ENV" = "green" ]; then
+              if [ "$DEPLOY_DIR" != "$GREEN_DIR" ] || [ "$DEPLOY_PORT" != "$GREEN_PORT" ]; then
+                echo "❌ Green environment configuration mismatch. Aborting."
+                exit 1
+              fi
+            else
+              echo "❌ Invalid deploy environment: ${DEPLOY_ENV}. Aborting."
+              exit 1
+            fi
+            echo "✅ Deployment target validation passed: ${DEPLOY_ENV} -> ${DEPLOY_DIR}:${DEPLOY_PORT}"
+            
+            # 3. Nuke the inactive environment
+            echo "📂 Deleting inactive environment directory (${DEPLOY_ENV})..."
+            if [ -d "$DEPLOY_DIR" ]; then
+              echo "🗑️ Removing existing directory: $DEPLOY_DIR"
+              rm -rf "$DEPLOY_DIR"
+            else
+              echo "ℹ️ Directory $DEPLOY_DIR does not exist, skipping removal"
+            fi
+            # 4. Reclone the repository to the inactive environment
+            echo "📥 Recloning repository to ${DEPLOY_DIR}..."
+            git clone "$REPO_URL" "$DEPLOY_DIR"
+            # 5. Replace .config in the inactive environment
+            echo "📋 Replacing .config in ${DEPLOY_ENV} with ${CONFIG_SOURCE}..."
+            rm -rf "$DEPLOY_DIR/.config"
+            cp -r "$CONFIG_SOURCE" "$DEPLOY_DIR/.config"
+            # 6.5. Install system dependencies
+            echo "🔧 Installing system dependencies..."
+            
+            # Enable EPEL and RPM Fusion repos for AlmaLinux (needed for FFmpeg)
+            if ! dnf repolist | grep -q epel; then
+                echo "📦 Enabling EPEL repository..."
+                sudo dnf install -y epel-release
+            fi
+            
+            if ! dnf repolist | grep -q rpmfusion; then
+                echo "📦 Enabling RPM Fusion repository..."
+                sudo dnf install -y --nogpgcheck https://mirrors.rpmfusion.org/free/el/rpmfusion-free-release-$(rpm -E %rhel).noarch.rpm || true
+            fi
+            
+            # Install FFmpeg
+            echo "📦 Installing FFmpeg..."
+            sudo dnf install -y ffmpeg ffmpeg-devel || {
+                echo "⚠️ FFmpeg installation from repos failed, trying alternative method..."
+                sudo dnf install -y https://download1.rpmfusion.org/free/el/rpmfusion-free-release-9.noarch.rpm || true
+                sudo dnf install -y ffmpeg ffmpeg-devel || {
+                    echo "⚠️ FFmpeg installation failed - video features will be disabled"
+                }
+            }
+            
+            # Verify FFmpeg installation (non-fatal)
+            if command -v ffmpeg &> /dev/null; then
+                echo "✅ FFmpeg installed successfully: $(ffmpeg -version | head -1)"
+            else
+                echo "⚠️ FFmpeg not available - video processing will be disabled"
+            fi
+            
+            # 6. Verify config folder exists
+            if [ ! -d "$DEPLOY_DIR/.config" ]; then
+              echo "❌ Config folder $CONFIG_SOURCE not copied correctly to $DEPLOY_DIR/.config. Aborting."
+              exit 1
+            fi
+            # 7. Install dependencies
+            echo "📦 Installing dependencies for ${DEPLOY_ENV}..."
+            cd "$DEPLOY_DIR"
+            source /home/almalinux/.nvm/nvm.sh
+            # Clear caches to ensure fresh install
+            rm -rf node_modules/.cache || true
+            rm -rf .bun/install/cache || true
+            bun pm cache rm || true
+            bun install --frozen-lockfile
+            # 8. Build the application
+            echo "🛠️ Building ${DEPLOY_ENV}..."
+            bun run build
+            # 9. Run database migrations
+            echo "🗃️ Running database migrations..."
+            bun run migrate
+            # 10. Start the new instance and perform health check
+            echo "▶️ Starting ${DEPLOY_SERVICE}..."
+            sudo systemctl restart "${DEPLOY_SERVICE}"
+            
+            # Wait a moment for service to start
+            sleep 5
+            
+            echo "⏳ Waiting for new instance to be ready on port ${DEPLOY_PORT}..."
+            HEALTH_CHECK_TIMEOUT=300  # 5 minutes total
+            HEALTH_CHECK_INTERVAL=5   # Check every 5 seconds
+            elapsed=0
+            
+            while [ $elapsed -lt $HEALTH_CHECK_TIMEOUT ]; do
+              if curl -s --connect-timeout 5 --max-time 10 "http://localhost:${DEPLOY_PORT}/" > /dev/null 2>&1; then
+                echo "✅ New instance is responding on port ${DEPLOY_PORT}!"
+                break
+              fi
+              
+              echo "⏳ Still waiting... (${elapsed}s elapsed)"
+              sleep $HEALTH_CHECK_INTERVAL
+              elapsed=$((elapsed + HEALTH_CHECK_INTERVAL))
+            done
+            
+            if [ $elapsed -ge $HEALTH_CHECK_TIMEOUT ]; then
+              echo "❌ Service failed to respond on port ${DEPLOY_PORT} after ${HEALTH_CHECK_TIMEOUT} seconds."
+              echo "📊 Service status:"
+              sudo systemctl status "${DEPLOY_SERVICE}" --no-pager -l
+              echo "🔄 Attempting to restart service..."
+              sudo systemctl restart "${DEPLOY_SERVICE}"
+              sleep 10
+              
+              # Final attempt
+              if curl -s --connect-timeout 5 --max-time 10 "http://localhost:${DEPLOY_PORT}/" > /dev/null 2>&1; then
+                echo "✅ Service recovered after restart."
+              else
+                echo "❌ Service still not responding. Aborting deployment."
+                exit 1
+              fi
+            fi
+            # 11. Verify Nginx template exists
+            echo "🔍 Checking Nginx template..."
+            if [ ! -f "$NGINX_TEMPLATE_SOURCE" ]; then
+              echo "❌ Nginx template $NGINX_TEMPLATE_SOURCE does not exist. Aborting."
+              exit 1
+            fi
+            # 12. Switch Nginx to the new environment
+            echo "🔄 Switching Nginx to point to the ${DEPLOY_ENV} environment."
+            
+            # Backup current nginx config for rollback
+            NGINX_BACKUP="/tmp/nginx_backup_$(date +%s).conf"
+            sudo cp "${NGINX_ACTIVE_CONFIG}" "${NGINX_BACKUP}"
+            echo "💾 Nginx config backed up to ${NGINX_BACKUP}"
+            
+            sudo cp "${NGINX_TEMPLATE_SOURCE}" "${NGINX_ACTIVE_CONFIG}"
+            # 13. Test and reload Nginx
+            echo "🧪 Testing and reloading Nginx..."
+            if sudo nginx -t; then
+              sudo systemctl reload nginx
+              echo "✅ Nginx successfully reloaded to serve traffic from port ${DEPLOY_PORT}."
+              echo "${DEPLOY_ENV}" > "${STATE_FILE}"
+            else
+              echo "❌ Nginx configuration test failed. Rolling back..."
+              sudo cp "${NGINX_BACKUP}" "${NGINX_ACTIVE_CONFIG}"
+              sudo systemctl reload nginx 2>/dev/null || sudo systemctl restart nginx
+              rm -f "${NGINX_BACKUP}"
+              exit 1
+            fi
+            # 14. Stop the old instance
+            echo "🛑 Stopping old instance (${OLD_SERVICE})..."
+            if sudo systemctl is-active --quiet "${OLD_SERVICE}"; then
+              sudo systemctl stop "${OLD_SERVICE}"
+              echo "✅ Old instance stopped."
+              
+              # Verify old instance is actually stopped
+              sleep 3
+              if sudo systemctl is-active --quiet "${OLD_SERVICE}"; then
+                echo "⚠️ WARNING: Old instance (${OLD_SERVICE}) did not stop cleanly, but continuing deployment..."
+              fi
+            else
+              echo "ℹ️ Old instance was not running."
+            fi
+            
+            # 15. Final validation: Ensure correct instances are running
+            echo "🔍 Performing final validation..."
+            
+            # Check that the new instance is running
+            if ! sudo systemctl is-active --quiet "${DEPLOY_SERVICE}"; then
+              echo "❌ ERROR: New instance (${DEPLOY_SERVICE}) is not running after deployment!"
+              echo "🔄 Attempting to restart new instance..."
+              sudo systemctl restart "${DEPLOY_SERVICE}"
+              sleep 10
+              if ! sudo systemctl is-active --quiet "${DEPLOY_SERVICE}"; then
+                echo "❌ CRITICAL: Failed to restart new instance. Manual intervention required."
+                exit 1
+              fi
+              echo "✅ New instance restarted successfully."
+            fi
+            
+            # Check that the old instance is stopped
+            if sudo systemctl is-active --quiet "${OLD_SERVICE}"; then
+              echo "❌ ERROR: Old instance (${OLD_SERVICE}) is still running after deployment!"
+              echo "🛑 Force stopping old instance..."
+              sudo systemctl stop "${OLD_SERVICE}"
+              sleep 5
+              if sudo systemctl is-active --quiet "${OLD_SERVICE}"; then
+                echo "❌ CRITICAL: Cannot stop old instance. Manual intervention required."
+                exit 1
+              fi
+              echo "✅ Old instance force-stopped."
+            fi
+            
+            # Final health check
+            echo "🏥 Performing final health check..."
+            if ! curl -s --connect-timeout 10 --max-time 30 "http://localhost:${DEPLOY_PORT}/" > /dev/null; then
+              echo "❌ ERROR: New instance is not responding to HTTP requests!"
+              echo "🔄 Attempting service restart..."
+              sudo systemctl restart "${DEPLOY_SERVICE}"
+              sleep 15
+              if ! curl -s --connect-timeout 10 --max-time 30 "http://localhost:${DEPLOY_PORT}/" > /dev/null; then
+                echo "❌ CRITICAL: New instance failed final health check. Manual intervention required."
+                exit 1
+              fi
+              echo "✅ New instance passed final health check after restart."
+            fi
+            
+            echo "🎉 DEPLOYMENT TO ${DEPLOY_ENV} COMPLETE! 🎉"
+            echo "📝 Environment states:"
+            echo " Live: ${DEPLOY_ENV}"
+            echo " Live Directory: ${DEPLOY_DIR}"
+            echo " Live Port: ${DEPLOY_PORT}"
+            echo " Live Service: ${DEPLOY_SERVICE}"
+            echo " Previous Environment: ${CURRENT_LIVE_ENV}"
+            echo " Blue commit: $(cd "$BLUE_DIR" && git rev-parse --short HEAD 2>/dev/null || echo 'N/A')"
+            echo " Green commit: $(cd "$GREEN_DIR" && git rev-parse --short HEAD 2>/dev/null || echo 'N/A')"
+            echo " Package version: $(cd "$DEPLOY_DIR" && node -p "require('./package.json').version" 2>/dev/null || echo 'N/A')"
+            
+            # Cleanup backup file
+            rm -f "${NGINX_BACKUP}" 2>/dev/null || true

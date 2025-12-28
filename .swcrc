@@ -1,0 +1,33 @@
+{
+    "$schema": "https://json.schemastore.org/swcrc",
+    "jsc": {
+      "parser": {
+        "syntax": "typescript",
+        "dynamicImport": true,
+        "decorators": true
+      },
+      "transform": {
+        "legacyDecorator": true,
+        "decoratorMetadata": true,
+        "useDefineForClassFields": false
+      },
+      "experimental": {
+        "keepImportAssertions": true
+      },
+      "baseUrl": ".",
+      "paths": {
+        "@/*": [
+          "./src/*"
+        ]
+      },
+      "target": "es2022"
+    },
+    "module": {
+      "type": "es6",
+      "strict": false,
+      "noInterop": false,
+      "resolveFully": true
+    },
+    "minify": false,
+    "isModule": true
+} 

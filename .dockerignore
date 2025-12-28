@@ -1,0 +1,7 @@
+node_modules
+.git
+*.log
+redis
+db
+files
+.config

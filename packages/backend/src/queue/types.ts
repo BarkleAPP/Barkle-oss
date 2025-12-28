@@ -1,0 +1,68 @@
+import { DriveFile } from '@/models/entities/drive-file.js';
+import { Note } from '@/models/entities/note.js';
+import { User } from '@/models/entities/user.js';
+import { Webhook } from '@/models/entities/webhook.js';
+
+export type DeliverJobData = {
+	/** Actor */
+	user: ThinUser;
+	/** Activity */
+	content: unknown;
+	/** inbox URL to deliver */
+	to: string;
+};
+
+export type DbJobData = DbUserJobData | DbUserImportJobData | DbUserDeleteJobData | DbUserDataExportJobData;
+
+export type DbUserJobData = {
+	user: ThinUser;
+	excludeMuting: boolean;
+	excludeInactive: boolean;
+};
+
+export type DbUserDataExportJobData = {
+	user: ThinUser;
+	includePrivateData: boolean;
+	format: 'json' | 'csv';
+};
+
+export type DbUserDeleteJobData = {
+	user: ThinUser;
+	soft?: boolean;
+};
+
+export type DbUserImportJobData = {
+	user: ThinUser;
+	fileId: DriveFile['id'];
+};
+
+export type ObjectStorageJobData = ObjectStorageFileJobData | Record<string, unknown>;
+
+export type ObjectStorageFileJobData = {
+	key: string;
+};
+
+export type EndedPollNotificationJobData = {
+	noteId: Note['id'];
+};
+
+export type SubscriptionJobData = {
+	userId: User['id'];
+	action: 'check-expiring' | 'daily-check';
+	subscriptionId?: string;
+};
+
+export type WebhookDeliverJobData = {
+	type: string;
+	content: unknown;
+	webhookId: Webhook['id'];
+	userId: User['id'];
+	to: string;
+	secret: string;
+	createdAt: number;
+	eventId: string;
+};
+
+export type ThinUser = {
+	id: User['id'];
+};

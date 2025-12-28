@@ -1,0 +1,6 @@
+[workspace]
+packages = [
+  "packages/backend",
+  "packages/client",
+  "packages/sw"
+]

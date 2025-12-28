@@ -1,0 +1,11 @@
+{
+  "root": true,
+  "ignorePatterns": [
+    "node_modules/",
+    "built/",
+    "dist/",
+    ".bun/",
+    "*.config.js",
+    "scripts/"
+  ]
+}
