@@ -8,6 +8,7 @@ import { generateMutedUserQuery } from '../../common/generate-muted-user-query.j
 import { generateRepliesQuery } from '../../common/generate-replies-query.js';
 import { generateMutedNoteQuery } from '../../common/generate-muted-note-query.js';
 import { generateBlockedUserQuery } from '../../common/generate-block-query.js';
+import { generateShadowHiddenQuery } from '../../common/generate-shadow-hidden-query.js';
 
 export const meta = {
 	tags: ['notes'],
@@ -80,6 +81,7 @@ export default define(meta, paramDef, async (ps, user) => {
 		generateMutedNoteQuery(query, user);
 		generateBlockedUserQuery(query, user);
 	}
+	generateShadowHiddenQuery(query, user);
 
 	if (ps.withFiles) {
 		query.andWhere('note.fileIds != \'{}\'');

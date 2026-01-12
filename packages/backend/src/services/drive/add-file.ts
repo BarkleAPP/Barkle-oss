@@ -62,11 +62,11 @@ async function save(file: DriveFile, path: string, name: string, type: string, h
 		}
 
 		const baseUrl = meta.objectStorageBaseUrl
-			|| `${ meta.objectStorageUseSSL ? 'https' : 'http' }://${ meta.objectStorageEndpoint }${ meta.objectStoragePort ? `:${meta.objectStoragePort}` : '' }/${ meta.objectStorageBucket }`;
+			|| `${meta.objectStorageUseSSL ? 'https' : 'http'}://${meta.objectStorageEndpoint}${meta.objectStoragePort ? `:${meta.objectStoragePort}` : ''}/${meta.objectStorageBucket}`;
 
 		// for original
 		const key = `${meta.objectStoragePrefix}/${uuid()}${ext}`;
-		const url = `${ baseUrl }/${ key }`;
+		const url = `${baseUrl}/${key}`;
 
 		// for alts
 		let webpublicKey: string | null = null;
@@ -83,7 +83,7 @@ async function save(file: DriveFile, path: string, name: string, type: string, h
 
 		if (alts.webpublic) {
 			webpublicKey = `${meta.objectStoragePrefix}/webpublic-${uuid()}.${alts.webpublic.ext}`;
-			webpublicUrl = `${ baseUrl }/${ webpublicKey }`;
+			webpublicUrl = `${baseUrl}/${webpublicKey}`;
 
 			logger.info(`uploading webpublic: ${webpublicKey}`);
 			uploads.push(upload(webpublicKey, alts.webpublic.data, alts.webpublic.type, name));
@@ -91,7 +91,7 @@ async function save(file: DriveFile, path: string, name: string, type: string, h
 
 		if (alts.thumbnail) {
 			thumbnailKey = `${meta.objectStoragePrefix}/thumbnail-${uuid()}.${alts.thumbnail.ext}`;
-			thumbnailUrl = `${ baseUrl }/${ thumbnailKey }`;
+			thumbnailUrl = `${baseUrl}/${thumbnailKey}`;
 
 			logger.info(`uploading thumbnail: ${thumbnailKey}`);
 			uploads.push(upload(thumbnailKey, alts.thumbnail.data, alts.thumbnail.type));
@@ -160,13 +160,19 @@ async function save(file: DriveFile, path: string, name: string, type: string, h
 export async function generateAlts(path: string, type: string, generateWeb: boolean) {
 	if (type.startsWith('video/')) {
 		try {
+			logger.info(`Attempting video thumbnail generation for: ${path}, type: ${type}`);
 			const thumbnail = await GenerateVideoThumbnail(path);
+			logger.info(`Video thumbnail generated successfully for: ${path}`);
 			return {
 				webpublic: null,
 				thumbnail,
 			};
 		} catch (err) {
-			logger.warn(`GenerateVideoThumbnail failed: ${err}`);
+			logger.error(`GenerateVideoThumbnail failed for ${path}:`, {
+				error: err instanceof Error ? err.message : String(err),
+				stack: err instanceof Error ? err.stack : undefined,
+				type,
+			});
 			return {
 				webpublic: null,
 				thumbnail: null,
@@ -369,10 +375,10 @@ export async function addFile({
 		skipSensitiveDetection: skipNsfwCheck,
 		sensitiveThreshold: // 感度が高いほどしきい値は低くすることになる
 			instance.sensitiveMediaDetectionSensitivity === 'veryHigh' ? 0.1 :
-			instance.sensitiveMediaDetectionSensitivity === 'high' ? 0.3 :
-			instance.sensitiveMediaDetectionSensitivity === 'low' ? 0.7 :
-			instance.sensitiveMediaDetectionSensitivity === 'veryLow' ? 0.9 :
-			0.5,
+				instance.sensitiveMediaDetectionSensitivity === 'high' ? 0.3 :
+					instance.sensitiveMediaDetectionSensitivity === 'low' ? 0.7 :
+						instance.sensitiveMediaDetectionSensitivity === 'veryLow' ? 0.9 :
+							0.5,
 		sensitiveThresholdForPorn: 0.75,
 		enableSensitiveMediaDetectionForVideos: instance.enableSensitiveMediaDetectionForVideos,
 	});
@@ -388,12 +394,12 @@ export async function addFile({
 	let transcodedType = info.type.mime;
 	let transcodedName = name;
 	let transcodedInfo = info;
-	
+
 	if (!isLink && shouldTranscodeVideo(info.type.mime)) {
 		try {
 			logger.info(`transcoding video from ${info.type.mime} to mp4`);
 			const transcoded = await convertToMp4(path);
-			
+
 			// Save transcoded video to temp file
 			const [tempPath, cleanupTemp] = await createTemp();
 			await new Promise<void>((resolve, reject) => {
@@ -402,34 +408,34 @@ export async function addFile({
 				writeStream.on('finish', () => resolve());
 				writeStream.on('error', (err) => reject(err));
 			});
-			
+
 			// Update path and type to use transcoded version
 			transcodedPath = tempPath;
 			transcodedType = transcoded.type;
-			
+
 			// Update filename extension
 			if (transcodedName) {
 				transcodedName = transcodedName.replace(/\.[^.]+$/, `.${transcoded.ext}`);
 			}
-			
+
 			logger.info('video transcoding completed, recalculating file info');
-			
+
 			// Recalculate file info for transcoded video
 			transcodedInfo = await getFileInfo(transcodedPath, {
 				skipSensitiveDetection: skipNsfwCheck,
 				sensitiveThreshold: // 感度が高いほどしきい値は低くすることになる
 					instance.sensitiveMediaDetectionSensitivity === 'veryHigh' ? 0.1 :
-					instance.sensitiveMediaDetectionSensitivity === 'high' ? 0.3 :
-					instance.sensitiveMediaDetectionSensitivity === 'low' ? 0.7 :
-					instance.sensitiveMediaDetectionSensitivity === 'veryLow' ? 0.9 :
-					0.5,
+						instance.sensitiveMediaDetectionSensitivity === 'high' ? 0.3 :
+							instance.sensitiveMediaDetectionSensitivity === 'low' ? 0.7 :
+								instance.sensitiveMediaDetectionSensitivity === 'veryLow' ? 0.9 :
+									0.5,
 				sensitiveThresholdForPorn: 0.75,
 				enableSensitiveMediaDetectionForVideos: instance.enableSensitiveMediaDetectionForVideos,
 			});
-			
+
 			// Delete original file if it's not a link
 			if (path !== transcodedPath) {
-				fs.promises.unlink(path).catch(() => {});
+				fs.promises.unlink(path).catch(() => { });
 			}
 		} catch (err) {
 			logger.warn(`video transcoding failed: ${err}`);
@@ -488,9 +494,9 @@ export async function addFile({
 			file.maybePorn = info.porn;
 			file.isSensitive = user
 				? Users.isLocalUser(user) && profile?.alwaysMarkNsfw ? true :
-				(sensitive !== null && sensitive !== undefined)
-					? sensitive
-					: false
+					(sensitive !== null && sensitive !== undefined)
+						? sensitive
+						: false
 				: false;
 
 			if (profile && info.sensitive && profile.autoSensitive) file.isSensitive = true;
@@ -521,11 +527,11 @@ export async function addFile({
 	if (user && !isLink) {
 		const u = await Users.findOneBy({ id: user.id });
 		const isPlus = u?.isPlus || false; // Assuming there's an 'isPlus' field in the User model
-		const isMPlus = u?.isMPlus || false; 
-		const maxFileSize = isPlus? 5 * 1024 * 1024 * 1024 : (isMPlus ? 1024 * 1024 * 1024 : 500 * 1024 * 1024); // 1024 * 1024 * 1024; // 5GB for Plus, 1GB for non-Plus
+		const isMPlus = u?.isMPlus || false;
+		const maxFileSize = isPlus ? 5 * 1024 * 1024 * 1024 : (isMPlus ? 1024 * 1024 * 1024 : 500 * 1024 * 1024); // 1024 * 1024 * 1024; // 5GB for Plus, 1GB for non-Plus
 
 		if (transcodedInfo.size > maxFileSize) {
-			throw new IdentifiableError('f5f2b2d8-35c9-4ac9-8375-f8e01d62e706', 
+			throw new IdentifiableError('f5f2b2d8-35c9-4ac9-8375-f8e01d62e706',
 				`File size exceeds the limit. ${isPlus ? 'Plus users' : (isMPlus ? 'Mini Barkle+ Users' : 'Users')} can upload files up to ${isPlus ? '5GB' : (isMPlus ? '1Gb' : '500MB')}.`);
 		}
 	}
@@ -536,7 +542,7 @@ export async function addFile({
 		const usage = await DriveFiles.calcDriveUsageOf(user.id);
 		const instance = await fetchMeta();
 		const capacity = 1024 * 1024 * (user.driveCapacityOverrideMb || instance.localDriveCapacityMb);
-		
+
 		if (usage + transcodedInfo.size > capacity) {
 			throw new IdentifiableError('c6244ed2-a39a-4e1c-bf93-f0fbd7764fa6', `Drive capacity exceeded. Your current usage is ${Math.floor(usage / 1024 / 1024)}MB and this file would add ${Math.floor(transcodedInfo.size / 1024 / 1024)}MB, exceeding your ${Math.floor(capacity / 1024 / 1024)}MB limit.`);
 		}
@@ -592,9 +598,9 @@ export async function addFile({
 	file.maybePorn = transcodedInfo.porn;
 	file.isSensitive = user
 		? Users.isLocalUser(user) && profile?.alwaysMarkNsfw ? true :
-		(sensitive !== null && sensitive !== undefined)
-			? sensitive
-			: false
+			(sensitive !== null && sensitive !== undefined)
+				? sensitive
+				: false
 		: false;
 
 	if (profile && transcodedInfo.sensitive && profile.autoSensitive) file.isSensitive = true;

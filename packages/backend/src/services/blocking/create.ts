@@ -7,8 +7,9 @@ import { genId } from '@/misc/gen-id.js';
 import { IdentifiableError } from '@/misc/identifiable-error.js';
 import { getActiveWebhooks } from '@/misc/webhook-cache.js';
 import { webhookDeliver } from '@/queue/index.js';
+import { userReputationScoreService } from '@/services/algorithm/user-reputation-score-service.js';
 
-export default async function(blocker: User, blockee: User) {
+export default async function (blocker: User, blockee: User) {
 	await Promise.all([
 		cancelRequest(blocker, blockee),
 		cancelRequest(blockee, blocker),
@@ -28,6 +29,14 @@ export default async function(blocker: User, blockee: User) {
 
 	await Blockings.insert(blocking);
 
+	// Update blockee's blocksReceivedCount and recalculate reputation
+	await Users.increment({ id: blockee.id }, 'blocksReceivedCount', 1);
+	userReputationScoreService.invalidateCache(blockee.id);
+
+	// Async reputation recalculation (non-blocking)
+	Users.findOneBy({ id: blockee.id }).then(user => {
+		if (user) userReputationScoreService.calculateReputationScore(user);
+	}).catch(() => { });
 }
 
 async function cancelRequest(follower: User, followee: User) {

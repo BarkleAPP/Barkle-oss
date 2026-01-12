@@ -9,6 +9,7 @@ import { generateVisibilityQuery } from '../../common/generate-visibility-query.
 import { generateMutedNoteQuery } from '../../common/generate-muted-note-query.js';
 import { generateRepliesQuery } from '../../common/generate-replies-query.js';
 import { generateChannelQuery } from '../../common/generate-channel-query.js';
+import { generateShadowHiddenQuery } from '../../common/generate-shadow-hidden-query.js';
 
 import { algorithmClient, type EnhancedTimelineResult } from '@/services/algorithm/algorithm-microservice-client.js';
 import { timelineMixerService } from '@/services/algorithm/timeline-mixer-service.js';
@@ -248,6 +249,7 @@ async function getTimelinePosts(user: any, ps: any, cursor: any): Promise<{ note
   generateMutedNoteQuery(query, user);
   generateRepliesQuery(query, user);
   generateChannelQuery(query, user);
+  generateShadowHiddenQuery(query, user);
 
   // Apply renote preferences
   if (!ps.includeMyRenotes) {

@@ -7,7 +7,11 @@ import { IdentifiableError } from '@/misc/identifiable-error.js';
 // TODO: UserSignalTracker belongs in algorithm microservice, not backend
 // import { UserSignalTracker } from '@/services/algorithm/user-signal-tracker.js';
 import { signalCollectionService } from '@/services/algorithm/signal-collection-service.js';
+import { reactionCacheManager } from '@/services/algorithm/reaction-cache-manager.js';
 import { HOUR } from '@/const.js';
+import Logger from '@/services/logger.js';
+
+const logger = new Logger('following:create');
 
 export const meta = {
 	tags: ['following', 'users'],
@@ -101,7 +105,15 @@ export default define(meta, paramDef, async (ps, user) => {
 			signalCollectionService.collectFollowAction(follower.id, followee.id, 'follow', { source: 'direct' });
 		} catch (error) {
 			// Do not block follow action if algorithm service fails
-			console.error('Failed to collect follow signal:', error);
+			logger.error('Failed to collect follow signal', { followerId: follower.id, followeeId: followee.id, error });
+		}
+
+		// Invalidate following cache to update recommendations with new follow
+		try {
+			reactionCacheManager.invalidateFollowingCache(follower.id);
+		} catch (error) {
+			// Non-blocking: cache invalidation failure shouldn't block follows
+			logger.error('Failed to invalidate following cache', { followerId: follower.id, error });
 		}
 
 	} catch (e) {

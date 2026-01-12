@@ -15,6 +15,7 @@ import { PositiveReinforcementService } from '../../positive-reinforcement.js';
 import { ContentAmplificationService } from '../../content-amplification.js';
 import { CacheInvalidationHooks } from '../../algorithm/cache-invalidation-hooks.js';
 import { ScalableTimelineService } from '../../algorithm/scalable-timeline-service-adapter.js';
+import { userReputationScoreService, NEGATIVE_REACTIONS } from '../../algorithm/user-reputation-score-service.js';
 
 export default async (user: { id: User['id']; host: User['host']; }, note: Note, reaction?: string) => {
 	// Check blocking
@@ -172,5 +173,22 @@ export default async (user: { id: User['id']; host: User['host']; }, note: Note,
 	// Invalidate timeline cache after reaction
 	CacheInvalidationHooks.onNoteReaction(user.id, note.id, note.userId).catch(error => {
 		console.error('Error invalidating cache on note reaction:', error);
+	});
+
+	// Update reputation if negative reaction was received
+	setImmediate(async () => {
+		try {
+			const decodedForReputation = decodeReaction(reaction);
+			if (NEGATIVE_REACTIONS.includes(decodedForReputation.reaction)) {
+				// Invalidate cache to recalculate score with new negative reaction
+				userReputationScoreService.invalidateCache(note.userId);
+				const noteAuthor = await Users.findOneBy({ id: note.userId });
+				if (noteAuthor) {
+					await userReputationScoreService.calculateReputationScore(noteAuthor);
+				}
+			}
+		} catch (error) {
+			console.error('Error updating reputation on negative reaction:', error);
+		}
 	});
 };

@@ -62,9 +62,10 @@ export default define(meta, paramDef, async (ps, user) => {
 
 	const query = makePaginationQuery(Notes.createQueryBuilder('note'),
 		ps.sinceId, ps.untilId, ps.sinceDate, ps.untilDate)
-		.andWhere(new Brackets(qb => { qb
-			.where('note.userId = :meId', { meId: user.id });
-		if (hasFollowing) qb.orWhere(`note.userId IN (${ followingQuery.getQuery() })`);
+		.andWhere(new Brackets(qb => {
+			qb
+				.where('note.userId = :meId', { meId: user.id });
+			if (hasFollowing) qb.orWhere(`note.userId IN (${followingQuery.getQuery()})`);
 		}))
 		.innerJoinAndSelect('note.user', 'user')
 		.leftJoinAndSelect('user.avatar', 'avatar')
@@ -126,7 +127,7 @@ export default define(meta, paramDef, async (ps, user) => {
 	// Enhanced: Add social proof metadata to timeline notes
 	const noteIds = timeline.map(note => note.id);
 	const socialProofMap = await SocialProofService.batchCalculateNoteSocialProof(noteIds, user.id);
-	
+
 	// Add social proof to each note
 	const timelineWithProof = timeline.map(note => ({
 		...note,

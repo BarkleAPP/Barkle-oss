@@ -5,7 +5,11 @@ import { getUser } from '../../common/getters.js';
 import { Followings, Users } from '@/models/index.js';
 // TODO: UserSignalTracker belongs in algorithm microservice, not backend
 // import { UserSignalTracker } from '@/services/algorithm/user-signal-tracker.js';
+import { reactionCacheManager } from '@/services/algorithm/reaction-cache-manager.js';
 import { HOUR } from '@/const.js';
+import Logger from '@/services/logger.js';
+
+const logger = new Logger('following:delete');
 
 export const meta = {
 	tags: ['following', 'users'],
@@ -79,7 +83,15 @@ export default define(meta, paramDef, async (ps, user) => {
 	}
 
 	await deleteFollowing(follower, followee);
-	
+
+	// Invalidate following cache to update recommendations after unfollow
+	try {
+		reactionCacheManager.invalidateFollowingCache(follower.id);
+	} catch (error) {
+		// Non-blocking: cache invalidation failure shouldn't block unfollows
+		logger.error('Failed to invalidate following cache', { followerId: follower.id, error });
+	}
+
 	// TODO: Track unfollow signal for algorithm learning via HTTP call to microservice
 	// await UserSignalTracker.trackSignal({...});
 

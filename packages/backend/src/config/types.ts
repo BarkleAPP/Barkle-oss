@@ -114,6 +114,23 @@ export type Source = {
 		projectId?: string;
 		serviceAccountKey?: any;
 	};
+	reactionBasedRecommendations?: {
+		enabled?: boolean;
+		minCommonReactions?: number;
+		maxSimilarUsers?: number;
+		followBoostMultiplier?: number;
+		positiveSentimentWeight?: number;
+		negativeSentimentWeight?: number;
+		recencyDecayDays?: number;
+		reactionHistoryDays?: number;
+		maxReactionsPerUser?: number;
+		cacheTtlProfile?: number;
+		cacheTtlSimilar?: number;
+		cacheTtlCandidates?: number;
+		cacheTtlFollowing?: number;
+		positiveReactions?: string[];
+		negativeReactions?: string[];
+	};
 };
 
 /**

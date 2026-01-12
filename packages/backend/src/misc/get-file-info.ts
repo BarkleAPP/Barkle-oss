@@ -6,7 +6,7 @@ import * as util from 'node:util';
 import { FSWatcher } from 'chokidar';
 import { fileTypeFromFile } from 'file-type';
 import FFmpeg from 'fluent-ffmpeg';
-import { findFFmpeg } from './ffmpeg-path.js';
+import { findFFmpeg, findFFprobe } from './ffmpeg-path.js';
 import isSvg from 'is-svg';
 import probeImageSize from 'probe-image-size';
 import { type predictionType } from 'nsfwjs';
@@ -15,7 +15,19 @@ import { encode } from 'blurhash';
 import { detectSensitive } from '@/services/detect-sensitive.js';
 import { createTempDir } from './create-temp.js';
 
-FFmpeg.setFfmpegPath(findFFmpeg());
+// Set FFmpeg and FFprobe paths with validation
+try {
+	const ffmpegPath = findFFmpeg();
+	if (ffmpegPath && !ffmpegPath.includes('not-found')) {
+		FFmpeg.setFfmpegPath(ffmpegPath);
+	}
+	const ffprobePath = findFFprobe();
+	if (ffprobePath && !ffprobePath.includes('not-found')) {
+		FFmpeg.setFfprobePath(ffprobePath);
+	}
+} catch (error) {
+	console.warn('FFmpeg initialization failed in get-file-info:', error instanceof Error ? error.message : String(error));
+}
 
 const pipeline = util.promisify(stream.pipeline);
 

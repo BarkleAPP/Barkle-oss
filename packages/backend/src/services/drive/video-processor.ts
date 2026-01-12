@@ -1,6 +1,21 @@
 import * as fs from 'node:fs';
 import { createTemp } from '@/misc/create-temp.js';
 import FFmpeg from 'fluent-ffmpeg';
+import { findFFmpeg, findFFprobe } from '@/misc/ffmpeg-path.js';
+
+// Set FFmpeg and FFprobe paths on module load
+try {
+	const ffmpegPath = findFFmpeg();
+	if (ffmpegPath && !ffmpegPath.includes('not-found')) {
+		FFmpeg.setFfmpegPath(ffmpegPath);
+	}
+	const ffprobePath = findFFprobe();
+	if (ffprobePath && !ffprobePath.includes('not-found')) {
+		FFmpeg.setFfprobePath(ffprobePath);
+	}
+} catch (error) {
+	console.warn('FFmpeg initialization failed in video-processor:', error instanceof Error ? error.message : String(error));
+}
 
 export interface IVideo {
 	data: fs.ReadStream;
@@ -34,7 +49,7 @@ export async function convertToMp4(source: string): Promise<IVideo> {
 		});
 
 		const data = fs.createReadStream(path);
-		
+
 		// Clean up temp file when stream is closed
 		data.on('close', () => cleanup());
 		data.on('error', () => cleanup());

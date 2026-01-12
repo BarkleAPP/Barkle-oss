@@ -83,6 +83,7 @@ export default define(meta, paramDef, async (ps, me) => {
     isStripeCustomer,
     lastActiveDate: user.lastActiveDate,
     moderationNote: profile.moderationNote,
+    reputationScore: user.reputationScore,
     signins,
   };
 });

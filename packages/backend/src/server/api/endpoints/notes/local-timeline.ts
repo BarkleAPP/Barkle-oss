@@ -11,6 +11,7 @@ import { generateRepliesQuery } from '../../common/generate-replies-query.js';
 import { generateMutedNoteQuery } from '../../common/generate-muted-note-query.js';
 import { generateChannelQuery } from '../../common/generate-channel-query.js';
 import { generateBlockedUserQuery } from '../../common/generate-block-query.js';
+import { generateShadowHiddenQuery } from '../../common/generate-shadow-hidden-query.js';
 
 export const meta = {
 	tags: ['notes'],
@@ -43,9 +44,11 @@ export const paramDef = {
 			default: false,
 			description: 'Only show notes that have attached files.',
 		},
-		fileType: { type: 'array', items: {
-			type: 'string',
-		} },
+		fileType: {
+			type: 'array', items: {
+				type: 'string',
+			}
+		},
 		excludeNsfw: { type: 'boolean', default: false },
 		limit: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
 		sinceId: { type: 'string', format: 'barkle:id' },
@@ -91,18 +94,19 @@ export default define(meta, paramDef, async (ps, user) => {
 		.leftJoinAndSelect('renoteUser.banner', 'renoteUserBanner');
 
 	generateChannelQuery(query, user);
-	
+
 	// Handle replies based on parameter
 	if (!ps.withReplies) {
 		// Default behavior - exclude pure replies
 		generateRepliesQuery(query, user);
 	}
 	// If withReplies is true, we skip the generateRepliesQuery to include all replies
-	
+
 	generateVisibilityQuery(query, user);
 	if (user) generateMutedUserQuery(query, user);
 	if (user) generateMutedNoteQuery(query, user);
 	if (user) generateBlockedUserQuery(query, user);
+	generateShadowHiddenQuery(query, user);
 
 	// Exclude bots if requested
 	if (ps.excludeBots) {
@@ -145,7 +149,7 @@ export default define(meta, paramDef, async (ps, user) => {
 		case 'hot':
 			// Sort by recent activity with score
 			query.addSelect('note.score')
-				.andWhere('note.createdAt > :hotDate', { 
+				.andWhere('note.createdAt > :hotDate', {
 					hotDate: new Date(Date.now() - (1000 * 60 * 60 * 24 * 7)) // Last 7 days
 				})
 				.andWhere('note.score > 0')

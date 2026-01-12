@@ -3,6 +3,7 @@ import { SocialProofService } from '@/services/social-proof-service.js';
 import define from '../../define.js';
 import { generateMutedUserQuery } from '../../common/generate-muted-user-query.js';
 import { generateBlockedUserQuery } from '../../common/generate-block-query.js';
+import { generateShadowHiddenQuery } from '../../common/generate-shadow-hidden-query.js';
 
 export const meta = {
 	tags: ['notes'],
@@ -54,6 +55,7 @@ export default define(meta, paramDef, async (ps, user) => {
 
 	if (user) generateMutedUserQuery(query, user);
 	if (user) generateBlockedUserQuery(query, user);
+	generateShadowHiddenQuery(query, user);
 
 	let notes = await query
 		.orderBy('note.score', 'DESC')
@@ -67,7 +69,7 @@ export default define(meta, paramDef, async (ps, user) => {
 	// Enhanced: Add subtle social proof to featured notes
 	const noteIds = notes.map(note => note.id);
 	const socialProofMap = await SocialProofService.batchCalculateNoteSocialProof(noteIds, user?.id);
-	
+
 	// Add social proof to each note
 	const notesWithProof = notes.map(note => ({
 		...note,

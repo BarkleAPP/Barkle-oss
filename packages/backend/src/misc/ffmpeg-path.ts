@@ -8,7 +8,16 @@ const ffmpegPaths = [
   '/usr/local/ffmpeg/bin/ffmpeg', // Custom installations
 ];
 
+const ffprobePaths = [
+  '/usr/bin/ffprobe',
+  '/usr/local/bin/ffprobe',
+  '/opt/homebrew/bin/ffprobe',  // macOS with Homebrew
+  '/snap/bin/ffprobe',          // Snap packages
+  '/usr/local/ffmpeg/bin/ffprobe', // Custom installations
+];
+
 let ffmpegPath: string | null = null;
+let ffprobePath: string | null = null;
 
 export function findFFmpeg(): string {
   if (ffmpegPath) {
@@ -19,7 +28,7 @@ export function findFFmpeg(): string {
     try {
       if (fs.existsSync(path)) {
         ffmpegPath = path;
-        console.log(`✅ FFmpeg found at: ${ffmpegPath}`);
+        console.warn(`✅ FFmpeg found at: ${ffmpegPath}`);
         return ffmpegPath;
       }
     } catch (error) {
@@ -35,4 +44,26 @@ export function findFFmpeg(): string {
 
   // Return a placeholder path that will cause graceful failures
   return '/usr/bin/ffmpeg-not-found';
+}
+
+export function findFFprobe(): string {
+  if (ffprobePath) {
+    return ffprobePath;
+  }
+
+  for (const path of ffprobePaths) {
+    try {
+      if (fs.existsSync(path)) {
+        ffprobePath = path;
+        console.warn(`✅ FFprobe found at: ${ffprobePath}`);
+        return ffprobePath;
+      }
+    } catch (error) {
+      // Continue checking other paths
+      console.warn(`⚠️ Could not check path ${path}:`, error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  console.warn('⚠️ FFprobe not found. Video metadata features will be disabled.');
+  return '/usr/bin/ffprobe-not-found';
 }

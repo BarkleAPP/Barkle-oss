@@ -69,6 +69,28 @@ export class User {
 	})
 	public followingCount: number;
 
+	@Index()
+	@Column('integer', {
+		default: 0,
+		comment: 'Number of times this user has been blocked by others.',
+	})
+	public blocksReceivedCount: number;
+
+	@Index()
+	@Column('integer', {
+		default: 0,
+		comment: 'Number of times this user has been muted by others.',
+	})
+	public mutesReceivedCount: number;
+
+	@Index()
+	@Column('double precision', {
+		default: 0.5,
+		nullable: true,
+		comment: 'User reputation score (0-1 range) based on multiple factors.',
+	})
+	public reputationScore: number | null;
+
 	@Column('varchar', {
 		length: 512,
 		nullable: true,

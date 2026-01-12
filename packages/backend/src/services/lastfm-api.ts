@@ -17,7 +17,9 @@ async function lastfmApiCall(params: Record<string, string>) {
 
     const finalParams = new URLSearchParams(mutableParams);
     const url = `${LASTFM_API_URL}?${finalParams.toString()}`;
-
+    
+    console.log('Last.fm API URL:', url.replace(meta.lastfmApiKey, '[API_KEY]')); // Hide API key in logs
+    
     const response = await getJson(url);
 
     if (response.error) {
@@ -29,7 +31,7 @@ async function lastfmApiCall(params: Record<string, string>) {
 export async function getLastfmCurrentlyPlaying(integration: UserMusicIntegration): Promise<NowPlayingSong | null> {
     try {
         console.log(`Fetching Last.fm data for user ${integration.userId}, username: ${integration.username}`);
-
+        
         const data = await lastfmApiCall({
             method: 'user.getrecenttracks',
             user: integration.username,
@@ -48,12 +50,12 @@ export async function getLastfmCurrentlyPlaying(integration: UserMusicIntegratio
         if (Array.isArray(track)) {
             track = track[0];
         }
-
+        
         if (!track) {
             console.log('No track data found');
             return null;
         }
-
+        
         console.log('Track data:', JSON.stringify(track, null, 2));
 
         // Check if the track is currently playing
@@ -61,10 +63,10 @@ export async function getLastfmCurrentlyPlaying(integration: UserMusicIntegratio
             // Find the largest image
             let coverArtUrl = '';
             if (track.image && Array.isArray(track.image)) {
-                const largeImage = track.image.find((i: any) => i.size === 'extralarge') ||
-                    track.image.find((i: any) => i.size === 'large') ||
-                    track.image.find((i: any) => i.size === 'medium') ||
-                    track.image[track.image.length - 1];
+                const largeImage = track.image.find((i: any) => i.size === 'extralarge') || 
+                                  track.image.find((i: any) => i.size === 'large') ||
+                                  track.image.find((i: any) => i.size === 'medium') ||
+                                  track.image[track.image.length - 1];
                 coverArtUrl = largeImage?.['#text'] || '';
             }
 

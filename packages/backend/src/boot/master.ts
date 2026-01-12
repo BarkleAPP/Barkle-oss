@@ -38,7 +38,7 @@ function greet() {
 		console.log(themeColor(' |____/ __,_|_|  |_|_|___|'));
 		//#endregion
 
-		console.log(chalk.rgb(255, 136, 0)('Barkle - Open Source Social Platform'));
+		console.log(chalk.rgb(255, 136, 0)('Barkle is NOT to be hosted by anyone oustide of Avunite'));
 
 		console.log('');
 		console.log(chalkTemplate`--- ${os.hostname()} {gray (PID: ${process.pid.toString()})} ---`);
@@ -62,7 +62,7 @@ export async function masterMain() {
 		showNodejsVersion();
 		config = loadConfigBoot();
 		await connectDb();
-
+		
 		// Cache persistence removed for simplicity
 	} catch (e: any) {
 		bootLogger.error('Fatal error occurred during initialization', null, true);

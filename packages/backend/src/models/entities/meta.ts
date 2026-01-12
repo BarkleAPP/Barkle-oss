@@ -551,7 +551,7 @@ export class Meta {
 
 	@Column('varchar', {
 		length: 512,
-		default: 'https://github.com/BarkleAPP/Barkle-oss',
+		default: 'https://github.com/Avunite/Barkle',
 		nullable: false,
 	})
 	public repositoryUrl: string;

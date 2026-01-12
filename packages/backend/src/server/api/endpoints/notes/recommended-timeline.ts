@@ -11,12 +11,24 @@ import { generateRepliesQuery } from '../../common/generate-replies-query.js';
 import { generateMutedNoteQuery } from '../../common/generate-muted-note-query.js';
 import { generateChannelQuery } from '../../common/generate-channel-query.js';
 import { generateBlockedUserQuery } from '../../common/generate-block-query.js';
+import { generateShadowHiddenQuery } from '../../common/generate-shadow-hidden-query.js';
 import { SocialProofService } from '@/services/social-proof-service.js';
+import { reactionBasedRecommendationService } from '@/services/algorithm/reaction-based-recommendation-service.js';
 import { DAY } from '@/const.js';
+import { Note } from '@/models/entities/note.js';
+import Logger from '@/services/logger.js';
+
+const logger = new Logger('notes:recommended-timeline');
 
 export const meta = {
 	tags: ['notes'],
 	requireCredentialPrivateMode: true,
+
+	// Rate limit: 60 requests per minute per user
+	limit: {
+		duration: 60 * 1000, // 1 minute
+		max: 60,
+	},
 
 	res: {
 		type: 'array',
@@ -45,9 +57,11 @@ export const paramDef = {
 			default: false,
 			description: 'Only show notes that have attached files.',
 		},
-		fileType: { type: 'array', items: {
-			type: 'string',
-		} },
+		fileType: {
+			type: 'array', items: {
+				type: 'string',
+			}
+		},
 		excludeNsfw: { type: 'boolean', default: false },
 		limit: { type: 'integer', minimum: 1, maximum: 100, default: 10 },
 		sinceId: { type: 'string', format: 'barkle:id' },
@@ -58,6 +72,15 @@ export const paramDef = {
 	required: [],
 } as const;
 
+// Timeline composition proportions
+const REACTION_BASED_RATIO = 0.6; // 60% reaction-based recommendations
+const INSTANCE_BASED_RATIO = 0.4; // 40% instance-based recommendations (when reaction-based available)
+const INSTANCE_FALLBACK_RATIO = 0.7; // 70% instance-based (when no reaction-based)
+const TRENDING_MAX_RATIO = 0.3; // Maximum 30% trending notes
+
+// Recommendation metadata
+const DEFAULT_RECOMMENDATION_CONFIDENCE = 0.8; // Default confidence score for reaction-based recommendations
+
 export default define(meta, paramDef, async (ps, user) => {
 	const m = await fetchMeta();
 	if (m.disableRecommendedTimeline) {
@@ -66,7 +89,42 @@ export default define(meta, paramDef, async (ps, user) => {
 		}
 	}
 
-	//#region Construct query
+	// Try reaction-based recommendations first (60% of timeline)
+	let reactionBasedNotes: Note[] = [];
+	let reactionBasedNoteIds = new Set<string>();
+
+	if (user) {
+		try {
+			const reactionLimit = Math.floor(ps.limit * REACTION_BASED_RATIO);
+			reactionBasedNotes = await reactionBasedRecommendationService.getRecommendations(
+				user.id,
+				reactionLimit,
+				{
+					minCommonReactions: 3,
+					maxSimilarUsers: 50,
+					followBoostMultiplier: 2.5,
+					excludeMuted: true,
+					excludeBlocked: true,
+					excludeShadowHidden: true,
+				}
+			);
+			reactionBasedNoteIds = new Set(reactionBasedNotes.map(n => n.id));
+
+			if (reactionBasedNotes.length > 0) {
+				logger.info(`[ReactionRec] Found ${reactionBasedNotes.length} recommendations for user ${user.id}`);
+			}
+		} catch (error) {
+			logger.error('[ReactionRec] Failed to get recommendations, falling back', { userId: user.id, error });
+			reactionBasedNotes = [];
+		}
+	}
+
+	// Determine how many instance-based notes we need
+	const instanceLimit = reactionBasedNotes.length > 0
+		? Math.floor(ps.limit * INSTANCE_BASED_RATIO)
+		: Math.floor(ps.limit * INSTANCE_FALLBACK_RATIO);
+
+	//#region Construct query for instance-based recommendations
 	const query = makePaginationQuery(Notes.createQueryBuilder('note'),
 		ps.sinceId, ps.untilId, ps.sinceDate, ps.untilDate)
 		.andWhere(`(note.userHost = ANY ('{"${m.recommendedInstances.join('","')}"}'))`)
@@ -89,6 +147,7 @@ export default define(meta, paramDef, async (ps, user) => {
 	if (user) generateMutedUserQuery(query, user);
 	if (user) generateMutedNoteQuery(query, user);
 	if (user) generateBlockedUserQuery(query, user);
+	generateShadowHiddenQuery(query, user);
 
 	if (ps.withFiles) {
 		query.andWhere('note.fileIds != \'{}\'');
@@ -110,13 +169,19 @@ export default define(meta, paramDef, async (ps, user) => {
 	}
 	//#endregion
 
-	// Get recommended timeline notes
-	const recommendedNotes = await query.take(Math.ceil(ps.limit * 0.7)).getMany();
+	// Exclude reaction-based notes from instance-based to avoid duplicates
+	if (reactionBasedNoteIds.size > 0) {
+		query.andWhere('note.id NOT IN (:...reactionNoteIds)', { reactionNoteIds: Array.from(reactionBasedNoteIds) });
+	}
 
-	// Get trending notes to mix in (30% of the timeline)
-	const trendingCount = Math.floor(ps.limit * 0.3);
-	let trendingNotes: any[] = [];
-	
+	// Get instance-based recommended notes
+	const recommendedNotes = await query.take(instanceLimit).getMany();
+
+	// Get trending notes to fill remaining space (up to 30%)
+	const remainingCount = ps.limit - reactionBasedNotes.length - recommendedNotes.length;
+	const trendingCount = Math.max(0, Math.min(remainingCount, Math.floor(ps.limit * TRENDING_MAX_RATIO)));
+	let trendingNotes: Note[] = [];
+
 	if (trendingCount > 0) {
 		try {
 			// Get trending notes from the last 24 hours
@@ -146,17 +211,29 @@ export default define(meta, paramDef, async (ps, user) => {
 			if (user) generateMutedUserQuery(trendingQuery, user);
 			if (user) generateMutedNoteQuery(trendingQuery, user);
 			if (user) generateBlockedUserQuery(trendingQuery, user);
+			generateShadowHiddenQuery(trendingQuery, user);
+
+			// Exclude notes we already have
+			const excludeNoteIds = [...reactionBasedNoteIds, ...recommendedNotes.map(n => n.id)];
+			if (excludeNoteIds.length > 0) {
+				trendingQuery.andWhere('note.id NOT IN (:...excludeNoteIds)', { excludeNoteIds });
+			}
 
 			trendingNotes = await trendingQuery.take(trendingCount).getMany();
 		} catch (error) {
-			console.error('Failed to fetch trending notes for recommended timeline:', error);
+			logger.error('Failed to fetch trending notes for recommended timeline', { error });
 		}
 	}
 
-	// Combine and shuffle the notes to create a mixed timeline
-	const combinedNotes = [...recommendedNotes];
-	
-	// Insert trending notes at strategic positions
+	// Combine all notes
+	const combinedNotes = [
+		...reactionBasedNotes,
+		...recommendedNotes
+	];
+
+	// Insert trending notes at strategic positions throughout the timeline
+	// This prevents trending content from being buried at the end and increases discoverability
+	// Pattern: positions 2, 5, 8, 11, 14, then repeats every 15 notes
 	if (trendingNotes.length > 0) {
 		const insertPositions = [2, 5, 8, 11, 14]; // Strategic positions to insert trending content
 		trendingNotes.forEach((trendingNote, index) => {
@@ -180,18 +257,32 @@ export default define(meta, paramDef, async (ps, user) => {
 
 	// Pack notes with social proof metadata
 	const packedNotes = await Notes.packMany(timeline, user);
-	
+
 	// Add social proof indicators to trending notes
 	if (user && trendingNotes.length > 0) {
 		const socialProofMap = await SocialProofService.batchCalculateNoteSocialProof(
-			trendingNotes.map(n => n.id), 
+			trendingNotes.map(n => n.id),
 			user.id
 		);
-		
+
 		packedNotes.forEach((note: any) => {
 			const socialProof = socialProofMap.get(note.id);
 			if (socialProof) {
 				note.socialProof = socialProof;
+			}
+		});
+	}
+
+	// Add recommendation metadata for reaction-based notes
+	if (user && reactionBasedNotes.length > 0) {
+		const reactionBasedIds = new Set(reactionBasedNotes.map(n => n.id));
+		packedNotes.forEach((note: any) => {
+			if (reactionBasedIds.has(note.id)) {
+				note.recommendationReason = {
+					type: 'reaction_based',
+					label: 'Because users with similar taste liked this',
+					confidence: DEFAULT_RECOMMENDATION_CONFIDENCE,
+				};
 			}
 		});
 	}

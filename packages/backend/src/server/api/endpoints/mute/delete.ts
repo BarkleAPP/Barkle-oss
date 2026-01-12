@@ -1,8 +1,9 @@
 import define from '../../define.js';
 import { ApiError } from '../../error.js';
 import { getUser } from '../../common/getters.js';
-import { Mutings } from '@/models/index.js';
+import { Mutings, Users } from '@/models/index.js';
 import { publishUserEvent } from '@/services/stream.js';
+import { userReputationScoreService } from '@/services/algorithm/user-reputation-score-service.js';
 
 export const meta = {
 	tags: ['account'],
@@ -68,6 +69,15 @@ export default define(meta, paramDef, async (ps, user) => {
 	await Mutings.delete({
 		id: exist.id,
 	});
+
+	// Decrement mutee's mutesReceivedCount and recalculate reputation
+	await Users.decrement({ id: mutee.id }, 'mutesReceivedCount', 1);
+	userReputationScoreService.invalidateCache(mutee.id);
+
+	// Async reputation recalculation (non-blocking)
+	Users.findOneBy({ id: mutee.id }).then(u => {
+		if (u) userReputationScoreService.calculateReputationScore(u);
+	}).catch(() => { });
 
 	publishUserEvent(user.id, 'unmute', mutee);
 });

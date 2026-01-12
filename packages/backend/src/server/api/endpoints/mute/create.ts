@@ -2,10 +2,11 @@ import define from '../../define.js';
 import { ApiError } from '../../error.js';
 import { getUser } from '../../common/getters.js';
 import { genId } from '@/misc/gen-id.js';
-import { Mutings, NoteWatchings } from '@/models/index.js';
+import { Mutings, NoteWatchings, Users } from '@/models/index.js';
 import { Muting } from '@/models/entities/muting.js';
 import { publishUserEvent } from '@/services/stream.js';
 import { signalCollectionService } from '@/services/algorithm/signal-collection-service.js';
+import { userReputationScoreService } from '@/services/algorithm/user-reputation-score-service.js';
 
 export const meta = {
 	tags: ['account'],
@@ -84,6 +85,15 @@ export default define(meta, paramDef, async (ps, user) => {
 		muterId: muter.id,
 		muteeId: mutee.id,
 	} as Muting);
+
+	// Update mutee's mutesReceivedCount and recalculate reputation
+	await Users.increment({ id: mutee.id }, 'mutesReceivedCount', 1);
+	userReputationScoreService.invalidateCache(mutee.id);
+
+	// Async reputation recalculation (non-blocking)
+	Users.findOneBy({ id: mutee.id }).then(u => {
+		if (u) userReputationScoreService.calculateReputationScore(u);
+	}).catch(() => { });
 
 	publishUserEvent(user.id, 'mute', mutee);
 

@@ -9,14 +9,14 @@ import { webhookDeliver } from '@/queue/index.js';
 
 const logger = new Logger('following/delete');
 
-export default async function(follower: { id: User['id'] }, followee: { id: User['id'] }, silent = false) {
+export default async function (follower: { id: User['id'] }, followee: { id: User['id'] }, silent = false) {
     const following = await Followings.findOneBy({
         followerId: follower.id,
         followeeId: followee.id,
     });
 
     if (following == null) {
-        logger.warn('フォロー解除がリクエストされましたがフォローしていませんでした');
+        logger.warn('Unfollow requested but user was not following');
         return;
     }
 

@@ -1,7 +1,7 @@
-import define from '../../../define.js';
+import define from '../../define.js';
 import { createExportUserDataJob } from '@/queue/index.js';
 import { Users } from '@/models/index.js';
-import { ApiError } from '../../../error.js';
+import { ApiError } from '../../error.js';
 import { DAY } from '@/const.js';
 
 export const meta = {
@@ -26,8 +26,8 @@ export const paramDef = {
 	type: 'object',
 	properties: {
 		userId: { type: 'string', format: 'barkle:id' },
-		includePrivateData: { 
-			type: 'boolean', 
+		includePrivateData: {
+			type: 'boolean',
 			default: true,
 			description: 'Whether to include private data like direct messages, muted users, blocked users, etc.'
 		},

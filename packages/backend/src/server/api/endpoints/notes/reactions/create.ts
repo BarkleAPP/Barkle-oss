@@ -3,6 +3,10 @@ import define from '../../../define.js';
 import { getNote } from '../../../common/getters.js';
 import { ApiError } from '../../../error.js';
 import { signalCollectionService } from '@/services/algorithm/signal-collection-service.js';
+import { reactionBasedRecommendationService } from '@/services/algorithm/reaction-based-recommendation-service.js';
+import Logger from '@/services/logger.js';
+
+const logger = new Logger('reactions:create');
 
 export const meta = {
 	tags: ['reactions', 'notes'],
@@ -63,7 +67,15 @@ export default define(meta, paramDef, async (ps, user) => {
 		signalCollectionService.collectReaction(user.id, note.id, ps.reaction, { source: 'direct' });
 	} catch (error) {
 		// Do not block reaction if algorithm service fails
-		console.error('Failed to collect reaction signal:', error);
+		logger.error('Failed to collect reaction signal', { userId: user.id, noteId: note.id, error });
+	}
+
+	// Invalidate recommendation cache when user reacts
+	try {
+		reactionBasedRecommendationService.invalidateCache(user.id);
+	} catch (error) {
+		// Non-blocking: cache invalidation failure shouldn't block reactions
+		logger.error('Failed to invalidate recommendation cache after reaction', { userId: user.id, error });
 	}
 
 	return;

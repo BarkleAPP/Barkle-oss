@@ -57,7 +57,7 @@ export const meta = {
 			repositoryUrl: {
 				type: 'string',
 				optional: false, nullable: false,
-				default: 'https://github.com/BarkleAPP/Barkle-oss',
+				default: 'https://github.com/Avunite/Barkle',
 			},
 			feedbackUrl: {
 				type: 'string',
