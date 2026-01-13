@@ -70,8 +70,8 @@
 					<div class="attribution">
 						<small>
 							Built with <a href="https://github.com/misskey-dev/misskey" target="_blank"
-								rel="noopener">Misskey</a> & <a href="https://codeberg.org/calckey/calckey" target="_blank"
-								rel="noopener">Calckey</a> •
+								rel="noopener">Misskey</a> & <a href="https://codeberg.org/calckey/calckey"
+								target="_blank" rel="noopener">Calckey</a> •
 							<a href="https://github.com/BarkleAPP/Barkle-oss" target="_blank" rel="noopener">Open
 								Source</a>
 						</small>
