@@ -363,6 +363,38 @@ export default defineComponent({
 					}
 				}
 
+				>.open-source {
+					position: relative;
+					display: block;
+					width: 100%;
+					height: 40px;
+					color: var(--fg);
+					font-weight: 500;
+					text-align: left;
+					border: 1px solid var(--divider);
+					border-radius: 12px;
+					margin-bottom: 16px;
+					transition: all 0.3s ease;
+					min-height: 40px;
+					max-height: 40px;
+
+					&:hover {
+						background: var(--buttonHoverBg);
+						transform: translateY(-2px);
+					}
+
+					>.icon,
+					>.text {
+						position: relative;
+						left: 3rem;
+						color: var(--fg);
+					}
+
+					>.text {
+						margin-left: 1rem;
+					}
+				}
+
 				>.instance {
 					position: relative;
 					display: block;
@@ -545,6 +577,34 @@ export default defineComponent({
 						display: block;
 						margin: 0 auto;
 						color: var(--fgOnAccent);
+						transform: translateY(0.15em);
+					}
+
+					>.text {
+						display: none;
+					}
+				}
+
+				>.open-source {
+					display: block;
+					position: relative;
+					width: 100%;
+					height: 52px;
+					margin-bottom: 16px;
+					text-align: center;
+					border: 1px solid var(--divider);
+					border-radius: 12px;
+					min-height: 52px;
+					max-height: 52px;
+
+					&:hover {
+						background: var(--buttonHoverBg);
+					}
+
+					>.icon {
+						display: block;
+						margin: 0 auto;
+						color: var(--fg);
 						transform: translateY(0.15em);
 					}
 

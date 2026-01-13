@@ -2,7 +2,7 @@
 	"name": "barkle",
 	"version": "4.5.0-bark",
 	"codename": "aqua",
-	"license": "GPL-3.0",
+	"license": "AGPL-3.0",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/BarkleAPP/Barkle-oss.git"

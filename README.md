@@ -5,7 +5,7 @@
   <h3>A modern social platform built with Node.js and Vue.js</h3>
 </div>
 
-> **Open Source**: Barkle is an open-source social platform, forked from [Misskey](https://github.com/misskey-dev/misskey) and [Calckey](https://codeberg.org/calckey/calckey), released under the GNU General Public License v3.0. We acknowledge and thank the Misskey and Calckey development teams for creating the foundation this project builds upon.
+> **Open Source**: Barkle is an open-source social platform, forked from [Misskey](https://github.com/misskey-dev/misskey) and [Calckey](https://codeberg.org/calckey/calckey), released under the GNU Affero General Public License v3.0 (AGPL-3.0). We acknowledge and thank the Misskey and Calckey development teams for creating the foundation this project builds upon.
 
 ## 📋 Table of Contents
 
@@ -328,7 +328,7 @@ We are grateful to both development teams and their contributors. This project u
 
 ## 📄 License
 
-GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+GNU Affero General Public License v3.0 (AGPL-3.0) - see the [LICENSE](LICENSE) file for details.
 
 ## 🔗 Links
 
