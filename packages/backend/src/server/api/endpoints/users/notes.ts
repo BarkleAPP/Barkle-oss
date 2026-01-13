@@ -7,7 +7,6 @@ import { makePaginationQuery } from '../../common/make-pagination-query.js';
 import { generateVisibilityQuery } from '../../common/generate-visibility-query.js';
 import { generateMutedUserQuery } from '../../common/generate-muted-user-query.js';
 import { generateBlockedUserQuery } from '../../common/generate-block-query.js';
-import { generateShadowHiddenQuery } from '../../common/generate-shadow-hidden-query.js';
 
 export const meta = {
 	tags: ['users', 'notes'],
@@ -83,8 +82,6 @@ export default define(meta, paramDef, async (ps, me) => {
 		generateMutedUserQuery(query, me, user);
 		generateBlockedUserQuery(query, me);
 	}
-	// Apply shadow hidden filter (users can see their own shadow-hidden content)
-	generateShadowHiddenQuery(query, me);
 
 	if (ps.withFiles) {
 		query.andWhere('note.fileIds != \'{}\'');

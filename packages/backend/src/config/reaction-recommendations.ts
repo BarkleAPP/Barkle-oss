@@ -3,6 +3,15 @@
  *
  * Provides configuration values for the reaction-based recommendation system
  * with sensible defaults.
+ *
+ * NOTE ON EMOJI REACTIONS:
+ * Emoji reactions are matched using exact string comparison (case-insensitive).
+ * Some emoji may have multiple Unicode representations (e.g., with or without
+ * variation selectors). To ensure consistent matching:
+ * - Store reactions in their normalized form in the database
+ * - Use Unicode normalization (e.g., NFC) when comparing emojis
+ * - Be aware that '❤️' (heart with variation selector) differs from '❤' (heart without)
+ * - Test your emoji configurations to ensure they match as expected
  */
 
 import { fetchMeta } from '@/misc/fetch-meta.js';

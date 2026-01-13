@@ -9,6 +9,7 @@ import Logger from '@/services/logger.js';
 import { DAY } from '@/const.js';
 import type { ReactionWithNote, SimilarUserScore } from './reaction-based-recommendation-types.js';
 import { getReactionRecommendationsConfig } from '@/config/reaction-recommendations.js';
+import { createAsyncConfigCache } from '@/misc/config-cache-util.js';
 
 const logger = new Logger('reaction-similarity-calculator');
 
@@ -23,22 +24,9 @@ const SENTIMENT_ALIGNMENT_BONUS = 0.05; // Bonus for same sentiment (both positi
 // Similar user search cutoff
 const SIMILAR_USERS_CUTOFF_DAYS = 90; // Days to look back for finding similar users
 
-// Cached config
-let cachedConfig: Awaited<ReturnType<typeof getReactionRecommendationsConfig>> | null = null;
-let configCacheTime = 0;
+// Cached config with 5-minute TTL
 const CONFIG_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-
-/**
- * Get cached config or load fresh
- */
-async function getConfig() {
-	const now = Date.now();
-	if (!cachedConfig || now - configCacheTime > CONFIG_CACHE_TTL) {
-		cachedConfig = await getReactionRecommendationsConfig();
-		configCacheTime = now;
-	}
-	return cachedConfig;
-}
+const getConfig = createAsyncConfigCache(getReactionRecommendationsConfig, CONFIG_CACHE_TTL);
 
 /**
  * Reaction Similarity Calculator
@@ -128,6 +116,24 @@ export class ReactionSimilarityCalculator {
 			.orderBy('nr.createdAt', 'DESC')
 			.getMany();
 
+		// Pre-load config once outside the loop to avoid repeated async calls
+		const config = await getConfig();
+		const positiveReactions = config.positiveReactions || DEFAULT_POSITIVE_REACTIONS;
+		const negativeReactions = config.negativeReactions || DEFAULT_NEGATIVE_REACTIONS;
+
+		// Helper function for sentiment calculation (uses pre-loaded config)
+		const getSentiment = (reaction: string): 'positive' | 'negative' | 'neutral' => {
+			const reactionLower = reaction.toLowerCase();
+			// Use exact matching to avoid false positives from substring matching
+			if (positiveReactions.some(r => reactionLower === r.toLowerCase())) {
+				return 'positive';
+			}
+			if (negativeReactions.some(r => reactionLower === r.toLowerCase())) {
+				return 'negative';
+			}
+			return 'neutral';
+		};
+
 		// Group reactions by user
 		const reactionsByUser = new Map<string, ReactionWithNote[]>();
 		for (const r of similarUserReactions) {
@@ -160,7 +166,8 @@ export class ReactionSimilarityCalculator {
 			const otherNoteIds = new Set(otherReactions.map(r => r.noteId));
 			const intersection = commonNoteIds.length;
 			const union = new Set([...userNoteIds, ...otherNoteIds]).size;
-			const jaccardSimilarity = intersection / union;
+			// Guard against division by zero (though minCommonReactions should prevent this)
+			const jaccardSimilarity = union === 0 ? 0 : intersection / union;
 
 			// Calculate reaction type overlap bonus
 			let reactionTypeBonus = 0;
@@ -175,9 +182,9 @@ export class ReactionSimilarityCalculator {
 					reactionTypeBonus += REACTION_TYPE_MATCH_BONUS;
 				}
 
-				// Same sentiment = bonus
-				const userSentiment = await this.getReactionSentiment(userReaction);
-				const otherSentiment = await this.getReactionSentiment(otherReaction);
+				// Same sentiment = bonus (using pre-loaded config, no async calls)
+				const userSentiment = getSentiment(userReaction);
+				const otherSentiment = getSentiment(otherReaction);
 
 				if (userSentiment === otherSentiment && userSentiment !== 'neutral') {
 					sentimentAlignmentBonus += SENTIMENT_ALIGNMENT_BONUS;
@@ -209,6 +216,9 @@ export class ReactionSimilarityCalculator {
 
 	/**
 	 * Get reaction sentiment
+	 *
+	 * Note: Emoji reactions should be normalized to avoid Unicode variation issues.
+	 * This method uses exact string matching (case-insensitive) to classify reactions.
 	 */
 	public async getReactionSentiment(reaction: string): Promise<'positive' | 'negative' | 'neutral'> {
 		const config = await getConfig();
@@ -217,10 +227,11 @@ export class ReactionSimilarityCalculator {
 
 		const reactionLower = reaction.toLowerCase();
 
-		if (positiveReactions.some(r => reactionLower.includes(r) || reaction.includes(r))) {
+		// Use exact matching to avoid false positives from substring matching
+		if (positiveReactions.some(r => reactionLower === r.toLowerCase())) {
 			return 'positive';
 		}
-		if (negativeReactions.some(r => reactionLower.includes(r) || reaction.includes(r))) {
+		if (negativeReactions.some(r => reactionLower === r.toLowerCase())) {
 			return 'negative';
 		}
 		return 'neutral';

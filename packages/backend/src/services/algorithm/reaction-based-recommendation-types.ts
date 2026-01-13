@@ -16,7 +16,6 @@ export interface RecommendationOptions {
 	recencyDecayDays?: number;
 	excludeMuted?: boolean;
 	excludeBlocked?: boolean;
-	excludeShadowHidden?: boolean;
 	seenNoteIds?: string[];
 }
 

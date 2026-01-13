@@ -11,7 +11,6 @@ import { generateRepliesQuery } from '../../common/generate-replies-query.js';
 import { generateMutedNoteQuery } from '../../common/generate-muted-note-query.js';
 import { generateChannelQuery } from '../../common/generate-channel-query.js';
 import { generateBlockedUserQuery } from '../../common/generate-block-query.js';
-import { generateShadowHiddenQuery } from '../../common/generate-shadow-hidden-query.js';
 import { SocialProofService } from '@/services/social-proof-service.js';
 import { reactionBasedRecommendationService } from '@/services/algorithm/reaction-based-recommendation-service.js';
 import { DAY } from '@/const.js';
@@ -78,9 +77,6 @@ const INSTANCE_BASED_RATIO = 0.4; // 40% instance-based recommendations (when re
 const INSTANCE_FALLBACK_RATIO = 0.7; // 70% instance-based (when no reaction-based)
 const TRENDING_MAX_RATIO = 0.3; // Maximum 30% trending notes
 
-// Recommendation metadata
-const DEFAULT_RECOMMENDATION_CONFIDENCE = 0.8; // Default confidence score for reaction-based recommendations
-
 export default define(meta, paramDef, async (ps, user) => {
 	const m = await fetchMeta();
 	if (m.disableRecommendedTimeline) {
@@ -105,7 +101,6 @@ export default define(meta, paramDef, async (ps, user) => {
 					followBoostMultiplier: 2.5,
 					excludeMuted: true,
 					excludeBlocked: true,
-					excludeShadowHidden: true,
 				}
 			);
 			reactionBasedNoteIds = new Set(reactionBasedNotes.map(n => n.id));
@@ -147,7 +142,6 @@ export default define(meta, paramDef, async (ps, user) => {
 	if (user) generateMutedUserQuery(query, user);
 	if (user) generateMutedNoteQuery(query, user);
 	if (user) generateBlockedUserQuery(query, user);
-	generateShadowHiddenQuery(query, user);
 
 	if (ps.withFiles) {
 		query.andWhere('note.fileIds != \'{}\'');
@@ -211,7 +205,6 @@ export default define(meta, paramDef, async (ps, user) => {
 			if (user) generateMutedUserQuery(trendingQuery, user);
 			if (user) generateMutedNoteQuery(trendingQuery, user);
 			if (user) generateBlockedUserQuery(trendingQuery, user);
-			generateShadowHiddenQuery(trendingQuery, user);
 
 			// Exclude notes we already have
 			const excludeNoteIds = [...reactionBasedNoteIds, ...recommendedNotes.map(n => n.id)];
@@ -231,8 +224,12 @@ export default define(meta, paramDef, async (ps, user) => {
 		...recommendedNotes
 	];
 
-	// Insert trending notes at strategic positions throughout the timeline
-	// This prevents trending content from being buried at the end and increases discoverability
+	// Insert trending notes at strategic positions throughout the timeline to maximize engagement.
+	// Strategy: Intersperse trending content at positions 2, 5, 8, 11, 14 within each 15-note block,
+	// then repeat the pattern for additional trending notes. This ensures trending content appears
+	// regularly throughout the feed rather than being concentrated at the top or bottom, which
+	// increases the likelihood of user engagement with high-quality viral content while maintaining
+	// a balanced mix of personalized and popular recommendations.
 	// Pattern: positions 2, 5, 8, 11, 14, then repeats every 15 notes
 	if (trendingNotes.length > 0) {
 		const insertPositions = [2, 5, 8, 11, 14]; // Strategic positions to insert trending content
@@ -256,7 +253,7 @@ export default define(meta, paramDef, async (ps, user) => {
 	});
 
 	// Pack notes with social proof metadata
-	const packedNotes = await Notes.packMany(timeline, user);
+	const packedNotes = await Notes.packMany(timeline, user) as Array<Record<string, unknown> & { id: string }>;
 
 	// Add social proof indicators to trending notes
 	if (user && trendingNotes.length > 0) {
@@ -265,7 +262,7 @@ export default define(meta, paramDef, async (ps, user) => {
 			user.id
 		);
 
-		packedNotes.forEach((note: any) => {
+		packedNotes.forEach(note => {
 			const socialProof = socialProofMap.get(note.id);
 			if (socialProof) {
 				note.socialProof = socialProof;
@@ -276,12 +273,11 @@ export default define(meta, paramDef, async (ps, user) => {
 	// Add recommendation metadata for reaction-based notes
 	if (user && reactionBasedNotes.length > 0) {
 		const reactionBasedIds = new Set(reactionBasedNotes.map(n => n.id));
-		packedNotes.forEach((note: any) => {
+		packedNotes.forEach(note => {
 			if (reactionBasedIds.has(note.id)) {
 				note.recommendationReason = {
 					type: 'reaction_based',
 					label: 'Because users with similar taste liked this',
-					confidence: DEFAULT_RECOMMENDATION_CONFIDENCE,
 				};
 			}
 		});

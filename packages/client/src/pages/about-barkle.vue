@@ -25,8 +25,8 @@
 							target="_blank" class="_link">{{
 								i18n.ts.learnMore }}</a>
 					</div>
-					<div class="_formBlock" style="text-align: center;" <MkButton primary rounded inline
-						@click="iLoveMisskey">I
+				<div class="_formBlock" style="text-align: center;">
+					<MkButton primary rounded inline @click="iLoveMisskey">I
 						<Mfm text="$[jelly ❤]" /> #Barkle
 						</MkButton>
 					</div>

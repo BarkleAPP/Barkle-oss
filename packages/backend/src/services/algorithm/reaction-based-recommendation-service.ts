@@ -34,7 +34,7 @@ const DEFAULT_SORT_ORDER = 999; // Fallback sort order for notes not in original
 export class ReactionBasedRecommendationService {
 	private static instance: ReactionBasedRecommendationService;
 
-	private constructor() {}
+	private constructor() { }
 
 	public static getInstance(): ReactionBasedRecommendationService {
 		if (!ReactionBasedRecommendationService.instance) {
@@ -58,7 +58,7 @@ export class ReactionBasedRecommendationService {
 			const cached = await reactionCacheManager.getCachedRecommendations(
 				userId,
 				limit,
-				(ids, _lim) => this.fetchNotesByIds(ids, userId)
+				(ids, _lim) => this.fetchNotesByIds(ids)
 			);
 			if (cached && cached.length > 0) {
 				return cached;
@@ -74,7 +74,6 @@ export class ReactionBasedRecommendationService {
 				recencyDecayDays: options.recencyDecayDays ?? 30,
 				excludeMuted: options.excludeMuted ?? true,
 				excludeBlocked: options.excludeBlocked ?? true,
-				excludeShadowHidden: options.excludeShadowHidden ?? true,
 				seenNoteIds: options.seenNoteIds ?? [],
 			};
 
@@ -201,6 +200,14 @@ export class ReactionBasedRecommendationService {
 			similarUsers.map(u => [u.userId, u])
 		);
 
+		// Pre-compute all unique reaction sentiments to avoid repeated async calls in loop
+		const uniqueReactions = Array.from(new Set(candidateNotes.map(r => r.reaction)));
+		const sentimentCache = new Map<string, 'positive' | 'negative' | 'neutral'>();
+		for (const reaction of uniqueReactions) {
+			const sentiment = await reactionSimilarityCalculator.getReactionSentiment(reaction);
+			sentimentCache.set(reaction, sentiment);
+		}
+
 		const noteScores = new Map<string, RecommendationScore>();
 
 		for (const reaction of candidateNotes) {
@@ -209,8 +216,8 @@ export class ReactionBasedRecommendationService {
 
 			const baseSimilarity = similarUser.similarityScore;
 
-			// Apply sentiment weight
-			const sentiment = await reactionSimilarityCalculator.getReactionSentiment(reaction.reaction);
+			// Apply sentiment weight (using pre-computed sentiment)
+			const sentiment = sentimentCache.get(reaction.reaction) || 'neutral';
 			const sentimentWeight = reactionSimilarityCalculator.getSentimentWeight(sentiment, {
 				positiveWeight: options.positiveSentimentWeight,
 				negativeWeight: options.negativeSentimentWeight,
@@ -258,7 +265,7 @@ export class ReactionBasedRecommendationService {
 	/**
 	 * Fetch full note objects by IDs
 	 */
-	private async fetchNotesByIds(noteIds: string[], _userId?: string): Promise<Note[]> {
+	private async fetchNotesByIds(noteIds: string[]): Promise<Note[]> {
 		if (noteIds.length === 0) return [];
 
 		const query = Notes.createQueryBuilder('note')

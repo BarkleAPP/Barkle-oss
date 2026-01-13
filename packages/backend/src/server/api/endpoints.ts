@@ -75,7 +75,6 @@ import * as ep___admin_deco_delete from './endpoints/admin/avatar-decorations/de
 import * as ep___admin_deco_list from './endpoints/admin/avatar-decorations/list.js';
 import * as ep___admin_deco_edit from './endpoints/admin/avatar-decorations/edit.js';
 import * as ep___admin_updateUserReputation from './endpoints/admin/update-user-reputation.js';
-import * as ep___admin_notes_shadowHide from './endpoints/admin/notes/shadow-hide.js';
 import * as ep___admin_exportUserData from './endpoints/admin/export-user-data.js';
 import * as ep___activity_indicators from './endpoints/activity/indicators.js';
 import * as ep___announcements from './endpoints/announcements.js';
@@ -483,7 +482,6 @@ const eps: Array<[string, any]> = [
 	['admin/delete-account', ep___admin_deleteAccount],
 	['admin/update-user-note', ep___admin_updateUserNote],
 	['admin/update-user-reputation', ep___admin_updateUserReputation],
-	['admin/notes/shadow-hide', ep___admin_notes_shadowHide],
 	['admin/export-user-data', ep___admin_exportUserData],
 	['admin/deco/add', ep___admin_deco_add],
 	['admin/deco/delete', ep___admin_deco_delete],

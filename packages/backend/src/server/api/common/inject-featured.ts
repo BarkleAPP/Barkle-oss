@@ -4,7 +4,6 @@ import { User } from '@/models/entities/user.js';
 import { Notes, UserProfiles, NoteReactions } from '@/models/index.js';
 import { generateMutedUserQuery } from './generate-muted-user-query.js';
 import { generateBlockedUserQuery } from './generate-block-query.js';
-import { generateShadowHiddenQuery } from './generate-shadow-hidden-query.js';
 
 // TODO: リアクション、Renote、返信などをしたノートは除外する
 
@@ -32,7 +31,6 @@ export async function injectFeatured(timeline: Note[], user?: User | null) {
 
 		generateMutedUserQuery(query, user);
 		generateBlockedUserQuery(query, user);
-		generateShadowHiddenQuery(query, user);
 
 		const reactionQuery = NoteReactions.createQueryBuilder('reaction')
 			.select('reaction.noteId')

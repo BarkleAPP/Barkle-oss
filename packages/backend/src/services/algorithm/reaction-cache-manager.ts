@@ -9,6 +9,7 @@ import Logger from '@/services/logger.js';
 import { redisClient } from '@/db/redis.js';
 import { Followings } from '@/models/index.js';
 import { getReactionRecommendationsConfig } from '@/config/reaction-recommendations.js';
+import { createAsyncConfigCache } from '@/misc/config-cache-util.js';
 
 const logger = new Logger('reaction-cache-manager');
 
@@ -20,22 +21,9 @@ const CACHE_KEYS = {
 	userFollowing: (userId: string) => `reaction_rec:following:${userId}`,
 };
 
-// Cached config
-let cachedConfig: Awaited<ReturnType<typeof getReactionRecommendationsConfig>> | null = null;
-let configCacheTime = 0;
+// Cached config with 5-minute TTL
 const CONFIG_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-
-/**
- * Get cached config or load fresh
- */
-async function getConfig() {
-	const now = Date.now();
-	if (!cachedConfig || now - configCacheTime > CONFIG_CACHE_TTL) {
-		cachedConfig = await getReactionRecommendationsConfig();
-		configCacheTime = now;
-	}
-	return cachedConfig;
-}
+const getConfig = createAsyncConfigCache(getReactionRecommendationsConfig, CONFIG_CACHE_TTL);
 
 /**
  * Reaction Cache Manager

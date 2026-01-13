@@ -8,6 +8,7 @@ import { IdentifiableError } from '@/misc/identifiable-error.js';
 // import { UserSignalTracker } from '@/services/algorithm/user-signal-tracker.js';
 import { signalCollectionService } from '@/services/algorithm/signal-collection-service.js';
 import { reactionCacheManager } from '@/services/algorithm/reaction-cache-manager.js';
+import { reactionBasedRecommendationService } from '@/services/algorithm/reaction-based-recommendation-service.js';
 import { HOUR } from '@/const.js';
 import Logger from '@/services/logger.js';
 
@@ -108,12 +109,14 @@ export default define(meta, paramDef, async (ps, user) => {
 			logger.error('Failed to collect follow signal', { followerId: follower.id, followeeId: followee.id, error });
 		}
 
-		// Invalidate following cache to update recommendations with new follow
+		// Invalidate following cache and full recommendation cache to update recommendations with new follow
+		// Following relationships affect the followBoost calculation in recommendation scoring
 		try {
-			reactionCacheManager.invalidateFollowingCache(follower.id);
+			await reactionCacheManager.invalidateFollowingCache(follower.id);
+			await reactionBasedRecommendationService.invalidateCache(follower.id);
 		} catch (error) {
 			// Non-blocking: cache invalidation failure shouldn't block follows
-			logger.error('Failed to invalidate following cache', { followerId: follower.id, error });
+			logger.error('Failed to invalidate recommendation caches', { followerId: follower.id, error });
 		}
 
 	} catch (e) {

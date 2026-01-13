@@ -6,6 +6,7 @@ import { Followings, Users } from '@/models/index.js';
 // TODO: UserSignalTracker belongs in algorithm microservice, not backend
 // import { UserSignalTracker } from '@/services/algorithm/user-signal-tracker.js';
 import { reactionCacheManager } from '@/services/algorithm/reaction-cache-manager.js';
+import { reactionBasedRecommendationService } from '@/services/algorithm/reaction-based-recommendation-service.js';
 import { HOUR } from '@/const.js';
 import Logger from '@/services/logger.js';
 
@@ -84,12 +85,14 @@ export default define(meta, paramDef, async (ps, user) => {
 
 	await deleteFollowing(follower, followee);
 
-	// Invalidate following cache to update recommendations after unfollow
+	// Invalidate following cache and full recommendation cache to update recommendations after unfollow
+	// Following relationships affect the followBoost calculation in recommendation scoring
 	try {
-		reactionCacheManager.invalidateFollowingCache(follower.id);
+		await reactionCacheManager.invalidateFollowingCache(follower.id);
+		await reactionBasedRecommendationService.invalidateCache(follower.id);
 	} catch (error) {
 		// Non-blocking: cache invalidation failure shouldn't block unfollows
-		logger.error('Failed to invalidate following cache', { followerId: follower.id, error });
+		logger.error('Failed to invalidate recommendation caches', { followerId: follower.id, error });
 	}
 
 	// TODO: Track unfollow signal for algorithm learning via HTTP call to microservice

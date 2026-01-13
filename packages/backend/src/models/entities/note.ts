@@ -190,13 +190,6 @@ export class Note {
 	public hasPoll: boolean;
 
 	@Index()
-	@Column('boolean', {
-		default: false,
-		comment: 'Whether this note is shadow hidden by admins (hidden from feeds except following)',
-	})
-	public shadowHidden: boolean;
-
-	@Index()
 	@Column({
 		...id(),
 		nullable: true,
