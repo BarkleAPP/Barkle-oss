@@ -1,43 +1,56 @@
 <template>
-<div class="mvcprjjd" :class="{ iconOnly: iconOnly, drawer: isDrawer }">
-	<div class="body">
-		<div class="top">
-			<div class="banner" :style="{ backgroundImage: `url(${ instance.bannerUrl })` }"></div>
-			<div class="logo-section">
-				<img :src="instance.iconUrl || instance.faviconUrl || '/favicon.ico'" alt="Instance logo" class="instance-logo"/>
-				<h2 class="instance-name" v-if="!iconOnly">{{ instance.name || 'BARKLE' }}</h2>
-				<p class="tagline" v-if="!iconOnly">Bark it out!</p>
+	<div class="mvcprjjd" :class="{ iconOnly: iconOnly, drawer: isDrawer }">
+		<div class="body">
+			<div class="top">
+				<div class="banner" :style="{ backgroundImage: `url(${instance.bannerUrl})` }"></div>
+				<div class="logo-section">
+					<img :src="instance.iconUrl || instance.faviconUrl || '/favicon.ico'" alt="Instance logo"
+						class="instance-logo" />
+					<h2 class="instance-name" v-if="!iconOnly">{{ instance.name || 'BARKLE' }}</h2>
+					<p class="tagline" v-if="!iconOnly">Bark it out!</p>
+				</div>
+			</div>
+			<div class="middle">
+				<MkA v-click-anime v-tooltip.noDelay.right="i18n.ts.timeline" class="item index" active-class="active"
+					to="/" exact>
+					<i class="icon ph-house-bold ph-lg ph-fw ph-lg"></i><span class="text">{{ i18n.ts.timeline }}</span>
+				</MkA>
+				<MkA v-click-anime v-tooltip.noDelay.right="i18n.ts.explore" class="item explore" active-class="active"
+					to="/explore">
+					<i class="icon ph-hash-bold ph-lg ph-fw ph-lg"></i><span class="text">{{ i18n.ts.explore }}</span>
+				</MkA>
+				<MkA v-click-anime v-tooltip.noDelay.right="i18n.ts.channel" class="item channels" active-class="active"
+					to="/channels">
+					<i class="icon ph-television-bold ph-lg ph-fw ph-lg"></i><span class="text">{{ i18n.ts.channel
+						}}</span>
+				</MkA>
+				<button v-click-anime v-tooltip.noDelay.right="i18n.ts.search" class="item search _button"
+					@click="search">
+					<i class="icon ph-magnifying-glass-bold ph-lg ph-fw ph-lg"></i><span class="text">{{ i18n.ts.search
+						}}</span>
+				</button>
+				<!-- App Download Button for Mobile Guest -->
+				<MkAppDownloadButton v-if="!iconOnly" />
+			</div>
+			<div class="bottom">
+				<button class="item _button signin" @click="signin()">
+					<i class="icon ph-sign-in-bold ph-lg ph-fw ph-lg"></i><span class="text">{{ i18n.ts.login }}</span>
+				</button>
+				<button class="item _button signup" @click="signup()">
+					<i class="icon ph-user-plus-bold ph-lg ph-fw ph-lg"></i><span class="text">{{ i18n.ts.signup
+						}}</span>
+				</button>
+				<button v-click-anime v-tooltip.noDelay.right="'Open Source'" class="item _button open-source"
+					@click="openSourceInfo">
+					<i class="icon ph-code-bold ph-lg ph-fw ph-lg"></i><span class="text">Open Source</span>
+				</button>
+				<button v-click-anime v-tooltip.noDelay.right="instance.name ?? i18n.ts.instance"
+					class="item _button instance" @click="openInstanceMenu">
+					<img :src="instance.iconUrl || instance.faviconUrl || '/favicon.ico'" alt="" class="icon" />
+				</button>
 			</div>
 		</div>
-		<div class="middle">
-			<MkA v-click-anime v-tooltip.noDelay.right="i18n.ts.timeline" class="item index" active-class="active" to="/" exact>
-				<i class="icon ph-house-bold ph-lg ph-fw ph-lg"></i><span class="text">{{ i18n.ts.timeline }}</span>
-			</MkA>
-			<MkA v-click-anime v-tooltip.noDelay.right="i18n.ts.explore" class="item explore" active-class="active" to="/explore">
-				<i class="icon ph-hash-bold ph-lg ph-fw ph-lg"></i><span class="text">{{ i18n.ts.explore }}</span>
-			</MkA>
-			<MkA v-click-anime v-tooltip.noDelay.right="i18n.ts.channel" class="item channels" active-class="active" to="/channels">
-				<i class="icon ph-television-bold ph-lg ph-fw ph-lg"></i><span class="text">{{ i18n.ts.channel }}</span>
-			</MkA>
-			<button v-click-anime v-tooltip.noDelay.right="i18n.ts.search" class="item search _button" @click="search">
-				<i class="icon ph-magnifying-glass-bold ph-lg ph-fw ph-lg"></i><span class="text">{{ i18n.ts.search }}</span>
-			</button>
-			<!-- App Download Button for Mobile Guest -->
-			<MkAppDownloadButton v-if="!iconOnly" />
-		</div>
-		<div class="bottom">
-			<button class="item _button signin" @click="signin()">
-				<i class="icon ph-sign-in-bold ph-lg ph-fw ph-lg"></i><span class="text">{{ i18n.ts.login }}</span>
-			</button>
-			<button class="item _button signup" @click="signup()">
-				<i class="icon ph-user-plus-bold ph-lg ph-fw ph-lg"></i><span class="text">{{ i18n.ts.signup }}</span>
-			</button>
-			<button v-click-anime v-tooltip.noDelay.right="instance.name ?? i18n.ts.instance" class="item _button instance" @click="openInstanceMenu">
-				<img :src="instance.iconUrl || instance.faviconUrl || '/favicon.ico'" alt="" class="icon"/>
-			</button>
-		</div>
 	</div>
-</div>
 </template>
 
 <script lang="ts">
@@ -72,7 +85,7 @@ export default defineComponent({
 
 	mounted() {
 		this.calcViewState();
-		
+
 		if (!this.isDrawer) {
 			window.addEventListener('resize', this.calcViewState);
 		}
@@ -96,14 +109,14 @@ export default defineComponent({
 		signin() {
 			console.log('🔐 signin() called');
 			console.log('📊 popups before:', popups.value.length);
-			
+
 			const result = os.popup(defineAsyncComponent(() => import('@/components/MkSigninDialog.vue')), {
 				autoSet: true
 			}, {}, 'closed');
-			
+
 			console.log('📊 popups after:', popups.value.length);
 			console.log('📊 popup result:', result);
-			
+
 			// Watch for changes
 			setTimeout(() => {
 				console.log('📊 popups after 100ms:', popups.value.length);
@@ -112,16 +125,16 @@ export default defineComponent({
 		},
 
 		signup() {
-			console.log('📝 signup() called');  
+			console.log('📝 signup() called');
 			console.log('📊 popups before:', popups.value.length);
-			
+
 			const result = os.popup(defineAsyncComponent(() => import('@/components/MkSignupDialog.vue')), {
 				autoSet: true
 			}, {}, 'closed');
-			
+
 			console.log('📊 popups after:', popups.value.length);
 			console.log('📊 popup result:', result);
-			
+
 			// Watch for changes
 			setTimeout(() => {
 				console.log('📊 popups after 100ms:', popups.value.length);
@@ -151,6 +164,39 @@ export default defineComponent({
 				align: 'left',
 			});
 		},
+
+		openSourceInfo(ev: MouseEvent) {
+			os.popupMenu([{
+				text: 'Barkle is Open Source',
+				type: 'label',
+			}, {
+				text: 'Built upon:',
+				type: 'label',
+			}, {
+				text: 'Misskey',
+				icon: 'ph-code-bold ph-lg',
+				action: () => {
+					window.open('https://github.com/misskey-dev/misskey', '_blank', 'noopener');
+				},
+			}, {
+				text: 'Calckey',
+				icon: 'ph-code-bold ph-lg',
+				action: () => {
+					window.open('https://codeberg.org/calckey/calckey', '_blank', 'noopener');
+				},
+			}, null, {
+				text: 'Barkle Source Code',
+				icon: 'ph-github-logo-bold ph-lg',
+				action: () => {
+					window.open('https://github.com/BarkleAPP/Barkle-oss', '_blank', 'noopener');
+				},
+			}, null, {
+				text: 'License: AGPL-3.0 (Upstream)',
+				type: 'label',
+			}], ev.currentTarget as HTMLElement, {
+				align: 'left',
+			});
+		},
 	},
 });
 </script>
@@ -164,7 +210,7 @@ export default defineComponent({
 	width: $nav-width;
 	box-sizing: border-box;
 
-	> .body {
+	>.body {
 		position: fixed;
 		top: 0;
 		left: 0;
@@ -182,10 +228,10 @@ export default defineComponent({
 	}
 
 	&:not(.iconOnly) {
-		> .body {
+		>.body {
 			width: $nav-width;
 
-			> .top {
+			>.top {
 				position: sticky;
 				top: 0;
 				z-index: 1;
@@ -194,7 +240,7 @@ export default defineComponent({
 				-webkit-backdrop-filter: var(--blur, blur(8px));
 				backdrop-filter: var(--blur, blur(8px));
 
-				> .banner {
+				>.banner {
 					position: absolute;
 					top: 0;
 					left: 0;
@@ -202,11 +248,11 @@ export default defineComponent({
 					height: 100%;
 					background-size: cover;
 					background-position: center center;
-					-webkit-mask-image: linear-gradient(0deg, rgba(0,0,0,0) 15%, rgba(0,0,0,0.75) 100%);
-					mask-image: linear-gradient(0deg, rgba(0,0,0,0) 15%, rgba(0,0,0,0.75) 100%);
+					-webkit-mask-image: linear-gradient(0deg, rgba(0, 0, 0, 0) 15%, rgba(0, 0, 0, 0.75) 100%);
+					mask-image: linear-gradient(0deg, rgba(0, 0, 0, 0) 15%, rgba(0, 0, 0, 0.75) 100%);
 				}
 
-				> .logo-section {
+				>.logo-section {
 					position: relative;
 					display: flex;
 					flex-direction: column;
@@ -215,7 +261,7 @@ export default defineComponent({
 					width: 100%;
 					padding: 0;
 
-					> .instance-logo {
+					>.instance-logo {
 						width: 48px;
 						height: 48px;
 						border-radius: 50%;
@@ -223,7 +269,7 @@ export default defineComponent({
 						flex-shrink: 0;
 					}
 
-					> .instance-name {
+					>.instance-name {
 						font-size: 1.2rem;
 						font-weight: bold;
 						color: var(--accent);
@@ -233,7 +279,7 @@ export default defineComponent({
 						width: 100%;
 					}
 
-					> .tagline {
+					>.tagline {
 						font-size: 0.85rem;
 						color: var(--fg);
 						opacity: 0.8;
@@ -245,7 +291,7 @@ export default defineComponent({
 				}
 			}
 
-			> .bottom {
+			>.bottom {
 				position: sticky;
 				bottom: 0;
 				padding: 20px 0;
@@ -253,7 +299,7 @@ export default defineComponent({
 				-webkit-backdrop-filter: var(--blur, blur(8px));
 				backdrop-filter: var(--blur, blur(8px));
 
-				> .signin {
+				>.signin {
 					position: relative;
 					display: block;
 					width: 100%;
@@ -273,18 +319,19 @@ export default defineComponent({
 						transform: translateY(-2px);
 					}
 
-					> .icon, > .text {
+					>.icon,
+					>.text {
 						position: relative;
 						left: 3rem;
 						color: var(--accent);
 					}
 
-					> .text {
+					>.text {
 						margin-left: 1rem;
 					}
 				}
 
-				> .signup {
+				>.signup {
 					position: relative;
 					display: block;
 					width: 100%;
@@ -304,24 +351,25 @@ export default defineComponent({
 						box-shadow: 0 4px 12px rgba(var(--accent), 0.3);
 					}
 
-					> .icon, > .text {
+					>.icon,
+					>.text {
 						position: relative;
 						left: 3rem;
 						color: var(--fgOnAccent);
 					}
 
-					> .text {
+					>.text {
 						margin-left: 1rem;
 					}
 				}
 
-				> .instance {
+				>.instance {
 					position: relative;
 					display: block;
 					text-align: center;
 					width: 100%;
 
-					> .icon {
+					>.icon {
 						display: inline-block;
 						width: 32px !important;
 						aspect-ratio: 1;
@@ -330,10 +378,10 @@ export default defineComponent({
 				}
 			}
 
-			> .middle {
+			>.middle {
 				flex: 0.1;
 
-				> .item {
+				>.item {
 					position: relative;
 					display: block;
 					padding-left: 30px;
@@ -347,14 +395,14 @@ export default defineComponent({
 					box-sizing: border-box;
 					color: var(--navFg);
 
-					> .icon {
+					>.icon {
 						position: relative;
 						width: 32px;
 						margin-right: 8px;
 						transform: translateY(0.15em);
 					}
 
-					> .text {
+					>.text {
 						position: relative;
 						font-size: 0.9em;
 					}
@@ -369,7 +417,8 @@ export default defineComponent({
 						color: var(--navActive);
 					}
 
-					&:hover, &.active {
+					&:hover,
+					&.active {
 						color: var(--accent);
 						transition: all 0.4s ease;
 
@@ -397,10 +446,10 @@ export default defineComponent({
 		flex: 0 0 $nav-icon-only-width;
 		width: $nav-icon-only-width;
 
-		> .body {
+		>.body {
 			width: $nav-icon-only-width;
 
-			> .top {
+			>.top {
 				position: sticky;
 				top: 0;
 				z-index: 1;
@@ -409,14 +458,14 @@ export default defineComponent({
 				-webkit-backdrop-filter: var(--blur, blur(8px));
 				backdrop-filter: var(--blur, blur(8px));
 
-				> .logo-section {
+				>.logo-section {
 					display: flex;
 					flex-direction: column;
 					align-items: center;
 					justify-content: center;
 					width: 100%;
 
-					> .instance-logo {
+					>.instance-logo {
 						width: 40px;
 						height: 40px;
 						border-radius: 50%;
@@ -424,7 +473,7 @@ export default defineComponent({
 						flex-shrink: 0;
 					}
 
-					> .instance-name {
+					>.instance-name {
 						font-size: 0.9rem;
 						font-weight: bold;
 						color: var(--accent);
@@ -440,7 +489,7 @@ export default defineComponent({
 				}
 			}
 
-			> .bottom {
+			>.bottom {
 				position: sticky;
 				bottom: 0;
 				padding: 20px 0;
@@ -448,7 +497,7 @@ export default defineComponent({
 				-webkit-backdrop-filter: var(--blur, blur(8px));
 				backdrop-filter: var(--blur, blur(8px));
 
-				> .signin {
+				>.signin {
 					display: block;
 					position: relative;
 					width: 100%;
@@ -464,19 +513,19 @@ export default defineComponent({
 						background: rgba(var(--accent), 0.1);
 					}
 
-					> .icon {
+					>.icon {
 						display: block;
 						margin: 0 auto;
 						color: var(--accent);
 						transform: translateY(0.15em);
 					}
 
-					> .text {
+					>.text {
 						display: none;
 					}
 				}
 
-				> .signup {
+				>.signup {
 					display: block;
 					position: relative;
 					width: 100%;
@@ -492,25 +541,25 @@ export default defineComponent({
 						box-shadow: 0 4px 12px rgba(var(--accent), 0.3);
 					}
 
-					> .icon {
+					>.icon {
 						display: block;
 						margin: 0 auto;
 						color: var(--fgOnAccent);
 						transform: translateY(0.15em);
 					}
 
-					> .text {
+					>.text {
 						display: none;
 					}
 				}
 
-				> .instance {
+				>.instance {
 					position: relative;
 					display: block;
 					text-align: center;
 					width: 100%;
 
-					> .icon {
+					>.icon {
 						display: inline-block;
 						width: 32px !important;
 						aspect-ratio: 1;
@@ -518,10 +567,10 @@ export default defineComponent({
 				}
 			}
 
-			> .middle {
+			>.middle {
 				flex: 0.1;
 
-				> .item {
+				>.item {
 					display: block;
 					position: relative;
 					padding: 1.1rem 0;
@@ -529,18 +578,19 @@ export default defineComponent({
 					width: 100%;
 					text-align: center;
 
-					> .icon {
+					>.icon {
 						display: block;
 						margin: 0 auto;
 						opacity: 0.7;
 						transform: translateY(0em);
 					}
 
-					> .text {
+					>.text {
 						display: none;
 					}
 
-					&:hover, &.active {
+					&:hover,
+					&.active {
 						text-decoration: none;
 						color: var(--accent);
 						transition: all 0.4s ease;
@@ -560,7 +610,8 @@ export default defineComponent({
 							background: var(--accentedBg);
 						}
 
-						> .icon, > .text {
+						>.icon,
+						>.text {
 							opacity: 1;
 						}
 					}
@@ -580,14 +631,14 @@ export default defineComponent({
 		background: var(--navBg);
 		box-shadow: 0 0 16px rgba(0, 0, 0, 0.1);
 
-		> .body {
+		>.body {
 			position: relative;
 			width: 100%;
 			height: 100%;
 			overflow-y: auto;
 			background: var(--navBg);
 
-			> .top {
+			>.top {
 				position: sticky;
 				top: 0;
 				z-index: 1;
@@ -596,20 +647,20 @@ export default defineComponent({
 				-webkit-backdrop-filter: var(--blur, blur(8px));
 				backdrop-filter: var(--blur, blur(8px));
 
-				> .logo-section {
-					> .instance-logo {
+				>.logo-section {
+					>.instance-logo {
 						width: 36px;
 						height: 36px;
 					}
 
-					> .instance-name {
+					>.instance-name {
 						font-size: 1rem;
 						overflow: hidden;
 						text-overflow: ellipsis;
 						white-space: nowrap;
 					}
 
-					> .tagline {
+					>.tagline {
 						font-size: 0.8rem;
 						overflow: hidden;
 						text-overflow: ellipsis;
@@ -618,10 +669,11 @@ export default defineComponent({
 				}
 			}
 
-			> .bottom {
+			>.bottom {
 				padding: 16px;
 
-				> .signin, > .signup {
+				>.signin,
+				>.signup {
 					height: 44px;
 					display: flex;
 					align-items: center;
@@ -629,14 +681,14 @@ export default defineComponent({
 					cursor: pointer;
 					overflow: hidden;
 
-					> .icon {
+					>.icon {
 						margin-left: 16px;
 						margin-right: 12px;
 						width: 20px;
 						flex-shrink: 0;
 					}
 
-					> .text {
+					>.text {
 						font-size: 0.9rem;
 						flex: 1;
 						overflow: hidden;
@@ -645,7 +697,7 @@ export default defineComponent({
 					}
 				}
 
-				> .signin {
+				>.signin {
 					margin-bottom: 8px;
 					border: 2px solid var(--accent);
 					color: var(--accent);
@@ -655,7 +707,7 @@ export default defineComponent({
 					}
 				}
 
-				> .signup {
+				>.signup {
 					margin-bottom: 12px;
 					background: linear-gradient(90deg, var(--buttonGradateA), var(--buttonGradateB));
 					color: var(--fgOnAccent);
@@ -665,38 +717,39 @@ export default defineComponent({
 					}
 				}
 
-				> .instance {
+				>.instance {
 					margin-top: 8px;
 					text-align: center;
 
-					> .icon {
+					>.icon {
 						width: 28px !important;
 						height: 28px;
 					}
 				}
 			}
 
-			> .middle {
+			>.middle {
 				flex: 1;
 				padding: 0 8px;
 
-				> .item {
+				>.item {
 					padding-left: 16px;
 					line-height: 2.5rem;
 					margin-bottom: 4px;
 					border-radius: 8px;
 					cursor: pointer;
 
-					> .icon {
+					>.icon {
 						width: 24px;
 						margin-right: 12px;
 					}
 
-					> .text {
+					>.text {
 						font-size: 0.85rem;
 					}
 
-					&:hover, &.active {
+					&:hover,
+					&.active {
 						background: var(--accentedBg);
 						color: var(--accent);
 
