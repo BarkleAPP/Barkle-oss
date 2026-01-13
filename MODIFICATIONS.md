@@ -169,9 +169,24 @@ Key new dependencies:
 - `stripe` - Stripe payment processing
 - Additional algorithm and psychology-related packages
 
-## Removed Files
+## Removed Features
 
-None - Barkle is additive to Calckey/Misskey, no core features removed.
+### ActivityPub Federation
+The following federation components from Calckey/Misskey have been removed, making Barkle a non-federated platform:
+
+**Removed Directories:**
+- `packages/backend/src/server/activitypub/` - ActivityPub HTTP endpoints (inbox, outbox, etc.)
+- `packages/backend/src/services/activitypub/` - ActivityPub protocol implementation
+
+**Removed Queue Processors:**
+- `packages/backend/src/queue/processors/deliver.ts` - Outbound federation delivery
+- `packages/backend/src/queue/processors/inbox.ts` - Incoming federation processing
+
+**Impact:**
+- Barkle instances cannot communicate with other Fediverse instances
+- Users cannot follow or interact with users on other platforms (Mastodon, Lemmy, etc.)
+- No federation queues are processed despite `deliverQueue` and `inboxQueue` being defined
+- Federation-related database fields remain in schema for compatibility but are unused
 
 ## Upstream Fork
 
