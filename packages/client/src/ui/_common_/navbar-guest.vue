@@ -22,12 +22,12 @@
 				<MkA v-click-anime v-tooltip.noDelay.right="i18n.ts.channel" class="item channels" active-class="active"
 					to="/channels">
 					<i class="icon ph-television-bold ph-lg ph-fw ph-lg"></i><span class="text">{{ i18n.ts.channel
-						}}</span>
+					}}</span>
 				</MkA>
 				<button v-click-anime v-tooltip.noDelay.right="i18n.ts.search" class="item search _button"
 					@click="search">
 					<i class="icon ph-magnifying-glass-bold ph-lg ph-fw ph-lg"></i><span class="text">{{ i18n.ts.search
-						}}</span>
+					}}</span>
 				</button>
 				<!-- App Download Button for Mobile Guest -->
 				<MkAppDownloadButton v-if="!iconOnly" />
@@ -38,7 +38,7 @@
 				</button>
 				<button class="item _button signup" @click="signup()">
 					<i class="icon ph-user-plus-bold ph-lg ph-fw ph-lg"></i><span class="text">{{ i18n.ts.signup
-						}}</span>
+					}}</span>
 				</button>
 				<button v-click-anime v-tooltip.noDelay.right="'Open Source'" class="item _button open-source"
 					@click="openSourceInfo">
