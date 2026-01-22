@@ -1,3 +1,4 @@
+import config from '@/config/index.js';
 import define from '../define.js';
 
 export const meta = {
@@ -14,14 +15,22 @@ export const paramDef = {
 } as const;
 
 export default define(meta, paramDef, async () => {
-	let tag_name;
-	await fetch('https://repo.Avunite.dev/api/v4/projects/1/releases')
-		.then((response) => response.json())
-		.then((data) => {
-			tag_name = data[0].tag_name;
+	try {
+		const response = await fetch('https://repo.Avunite.dev/api/v4/projects/1/releases', {
+			signal: AbortSignal.timeout(5000), // 5 second timeout
 		});
 
-	return {
-		tag_name,
-	};
+		if (!response.ok) {
+			// If the release server is unavailable, return current version
+			return { tag_name: config.version };
+		}
+
+		const data = await response.json();
+		const tag_name = data[0]?.tag_name ?? config.version;
+
+		return { tag_name };
+	} catch {
+		// If fetch fails (network error, timeout, etc.), return current version
+		return { tag_name: config.version };
+	}
 });

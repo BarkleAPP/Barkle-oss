@@ -1,5 +1,6 @@
-
 export class CreateIpBanTable20260122000001 {
+    name = 'CreateIpBanTable20260122000001'
+
     async up(queryRunner) {
         await queryRunner.query(`CREATE TABLE "ip_ban" ("id" character varying(32) NOT NULL, "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL, "userId" character varying(32), "ip" character varying(128) NOT NULL, "reason" character varying(512), "expiresAt" TIMESTAMP WITH TIME ZONE, CONSTRAINT "PK_ip_ban" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE UNIQUE INDEX "IDX_ip_ban_ip" ON "ip_ban" ("ip")`);

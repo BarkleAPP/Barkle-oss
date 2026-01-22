@@ -29,7 +29,6 @@ export async function logSecurityEvent(
 			createdAt: new Date(),
 			type,
 			userId: userId ?? null,
-			user: userId ? null : undefined, // Let TypeORM handle the relation
 			ipAddress: ipAddress ?? null,
 			userAgent: userAgent ?? null,
 			details: details ?? null,

@@ -57,15 +57,15 @@ export class SecurityEvent {
 	@PrimaryColumn(id())
 	public id: string;
 
+	@Index()
 	@Column('timestamp with time zone', {
 		comment: 'The created date of the SecurityEvent.',
 	})
 	public createdAt: Date;
 
 	@Index()
-	@Column({
-		type: 'enum',
-		enum: SecurityEventType,
+	@Column('varchar', {
+		length: 128,
 		comment: 'The type of security event',
 	})
 	public type: SecurityEventType;

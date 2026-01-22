@@ -83,7 +83,6 @@ import MkSelect from '@/components/form/select.vue';
 import MkSwitch from '@/components/form/switch.vue';
 import MkPagination from '@/components/MkPagination.vue';
 import MkButton from '@/components/MkButton.vue';
-import MkAvatar from '@/components/MkAvatar.vue';
 import * as os from '@/os';
 import { i18n } from '@/i18n';
 import { definePageMetadata } from '@/scripts/page-metadata';

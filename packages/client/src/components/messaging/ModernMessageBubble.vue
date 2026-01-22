@@ -211,13 +211,37 @@ const groupedReactions = computed(() => {
 });
 
 // Methods
+// Security: HTML escape function to prevent XSS attacks
+function escapeHtml(unsafe: string): string {
+  return unsafe
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 function formatMessage(text: string): string {
-  // Basic message formatting
-  let formatted = text;
+  // Security: FIRST escape HTML to prevent XSS attacks (CVE-2021-XXXX pattern)
+  let formatted = escapeHtml(text);
   
-  // Convert URLs to links
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
-  formatted = formatted.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+  // Convert URLs to links (now safe because text is escaped)
+  // URL regex - only match http/https URLs with safe characters
+  const urlRegex = /(https?:\/\/[^\s<>"']+)/g;
+  formatted = formatted.replace(urlRegex, (match) => {
+    // Double-check URL safety before creating link
+    try {
+      const url = new URL(match);
+      if (url.protocol === 'http:' || url.protocol === 'https:') {
+        // Escape the URL for href attribute
+        const safeHref = match.replace(/"/g, '&quot;');
+        return `<a href="${safeHref}" target="_blank" rel="noopener noreferrer">${match}</a>`;
+      }
+    } catch {
+      // Invalid URL, return escaped text
+    }
+    return match;
+  });
   
   // Convert line breaks
   formatted = formatted.replace(/\n/g, '<br>');

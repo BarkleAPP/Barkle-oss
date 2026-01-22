@@ -6,6 +6,7 @@ import Koa from 'koa';
 import Router from '@koa/router';
 import multer from '@koa/multer';
 import bodyParser from 'koa-bodyparser';
+import cors from '@koa/cors';
 import { Instances, AccessTokens, Users } from '@/models/index.js';
 import config from '@/config/index.js';
 import endpoints from './endpoints.js';
@@ -18,13 +19,13 @@ import discord from './service/discord.js';
 import github from './service/github.js';
 import twitter from './service/twitter.js';
 import spotify from './service/spotify.js';
-import { createCorsMiddleware } from '@/misc/security/cors-config.js';
 
 // Init app
 const app = new Koa();
 
-// Apply secure CORS configuration
-app.use(createCorsMiddleware(config));
+app.use(cors({
+	origin: '*',
+}));
 
 // No caching
 app.use(async (ctx, next) => {
@@ -58,12 +59,10 @@ const router = new Router();
 for (const endpoint of [...endpoints, ...compatibility]) {
 	if (endpoint.meta.requireFile) {
 		router.post(`/${endpoint.name}`, upload.single('file'), handler.bind(null, endpoint));
-		router.options(`/${endpoint.name}`, async ctx => { ctx.status = 204; });
 	} else {
 		// 後方互換性のため
 		if (endpoint.name.includes('-')) {
 			router.post(`/${endpoint.name.replace(/-/g, '_')}`, handler.bind(null, endpoint));
-			router.options(`/${endpoint.name.replace(/-/g, '_')}`, async ctx => { ctx.status = 204; });
 
 			if (endpoint.meta.allowGet) {
 				router.get(`/${endpoint.name.replace(/-/g, '_')}`, handler.bind(null, endpoint));
@@ -73,7 +72,6 @@ for (const endpoint of [...endpoints, ...compatibility]) {
 		}
 
 		router.post(`/${endpoint.name}`, handler.bind(null, endpoint));
-		router.options(`/${endpoint.name}`, async ctx => { ctx.status = 204; });
 
 		if (endpoint.meta.allowGet) {
 			router.get(`/${endpoint.name}`, handler.bind(null, endpoint));
@@ -86,11 +84,6 @@ for (const endpoint of [...endpoints, ...compatibility]) {
 router.post('/signup', signup);
 router.post('/signin', signin);
 router.post('/signup-pending', signupPending);
-
-// Handle OPTIONS preflight requests for CORS
-router.options('/signup', async ctx => { ctx.status = 204; });
-router.options('/signin', async ctx => { ctx.status = 204; });
-router.options('/signup-pending', async ctx => { ctx.status = 204; });
 
 router.use(discord.routes());
 router.use(github.routes());

@@ -22,7 +22,7 @@ export const meta = {
 					type: 'string',
 					optional: false,
 					nullable: false,
-					format: 'id',
+					format: 'barkle:id',
 				},
 				createdAt: {
 					type: 'string',
@@ -40,7 +40,7 @@ export const meta = {
 					type: 'string',
 					optional: false,
 					nullable: true,
-					format: 'id',
+					format: 'barkle:id',
 				},
 				user: {
 					type: 'object',
@@ -83,11 +83,11 @@ export const paramDef = {
 	type: 'object',
 	properties: {
 		limit: { type: 'integer', minimum: 1, maximum: 100, default: 10 },
-		sinceId: { type: 'string', format: 'id' },
-		untilId: { type: 'string', format: 'id' },
+		sinceId: { type: 'string', format: 'barkle:id' },
+		untilId: { type: 'string', format: 'barkle:id' },
 		type: { type: 'string', enum: Object.values(SecurityEventType) },
 		severity: { type: 'string', enum: ['critical', 'high', 'medium', 'low', 'info'] },
-		userId: { type: 'string', format: 'id' },
+		userId: { type: 'string', format: 'barkle:id' },
 		unreviewedOnly: { type: 'boolean', default: false },
 	},
 	required: [],

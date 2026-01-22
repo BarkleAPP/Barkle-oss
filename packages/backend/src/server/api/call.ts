@@ -158,21 +158,25 @@ function handleError(e: Error, ep: any, data: any) {
 	if (e instanceof ApiError) {
 		throw e;
 	} else {
+		const errorDetails = {
+			message: e.message,
+			code: e.name,
+			stack: e.stack,
+		};
 		apiLogger.error(`Internal error occurred in ${ep.name}: ${e.message}`, {
 			ep: ep.name,
 			ps: data,
-			e: {
-				message: e.message,
-				code: e.name,
-				stack: e.stack,
-			},
+			e: errorDetails,
 		});
-		throw new ApiError(null, {
-			e: {
-				message: e.message,
-				code: e.name,
-				stack: e.stack,
-			},
+		// Log full stack trace to console for visibility
+		console.error(`[API ERROR] ${ep.name}:`, e);
+		throw new ApiError({
+			message: `Internal error: ${e.message}`,
+			code: 'INTERNAL_ERROR',
+			id: '5d37dbcb-891e-41ca-a3d6-e690c97775ac',
+			httpStatusCode: 500,
+		}, {
+			e: errorDetails,
 		});
 	}
 }

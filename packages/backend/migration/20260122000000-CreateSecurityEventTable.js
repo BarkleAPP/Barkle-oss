@@ -1,5 +1,6 @@
-
 export class CreateSecurityEventTable20260122000000 {
+    name = 'CreateSecurityEventTable20260122000000'
+
     async up(queryRunner) {
         await queryRunner.query(`CREATE TABLE "security_event" ("id" character varying(32) NOT NULL, "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL, "type" character varying(128) NOT NULL, "userId" character varying(32), "ipAddress" character varying(128), "userAgent" character varying(512), "details" jsonb, "severity" character varying(32), "reviewed" boolean NOT NULL DEFAULT false, CONSTRAINT "PK_security_event" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE INDEX "IDX_security_event_userId" ON "security_event" ("userId")`);

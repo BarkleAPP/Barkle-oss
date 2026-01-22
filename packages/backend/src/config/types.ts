@@ -162,6 +162,14 @@ export type Source = {
 		// Default: 86400 (24 hours)
 		maxAge?: number;
 	};
+
+	// Security: Proxy trust configuration (CVE-2025-66482 mitigation)
+	// Controls whether to trust X-Forwarded-For headers for IP address detection
+	// IMPORTANT: Set to true ONLY if you are running behind a trusted reverse proxy
+	// Default: false (secure by default - does not trust X-Forwarded-For headers)
+	// If true, the first IP in the X-Forwarded-For header is used for rate limiting
+	// If false, the direct connection IP is used (prevents header spoofing attacks)
+	trustProxy?: boolean;
 };
 
 /**

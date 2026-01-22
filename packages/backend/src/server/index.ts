@@ -32,7 +32,18 @@ export const serverLogger = new Logger('server', 'gray', false);
 
 // Init app
 const app = new Koa();
-app.proxy = true;
+
+// Security: Control proxy trust (CVE-2025-66482 mitigation)
+// Only trust X-Forwarded-For headers when explicitly configured
+// This prevents rate limit bypass attacks via header spoofing
+// Default is false (secure by default) - direct connection IP is used
+app.proxy = config.trustProxy ?? false;
+
+if (app.proxy) {
+	serverLogger.info('Proxy trust enabled - X-Forwarded-For headers will be trusted for IP detection');
+} else {
+	serverLogger.info('Proxy trust disabled (secure default) - using direct connection IP');
+}
 
 if (!['production', 'test'].includes(process.env.NODE_ENV || '')) {
 	// Logger

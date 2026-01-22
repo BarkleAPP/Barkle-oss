@@ -19,7 +19,7 @@ export const meta = {
 export const paramDef = {
 	type: 'object',
 	properties: {
-		eventId: { type: 'string', format: 'id' },
+		eventId: { type: 'string', format: 'barkle:id' },
 	},
 	required: ['eventId'],
 } as const;

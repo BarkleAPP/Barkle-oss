@@ -36,7 +36,6 @@ import MkPagination from '@/components/MkPagination.vue';
 import * as os from '@/os';
 import { i18n } from '@/i18n';
 import { definePageMetadata } from '@/scripts/page-metadata';
-import MkAvatar from '@/components/MkAvatar.vue';
 
 let pagination = $ref<InstanceType<typeof MkPagination>>();
 let userId = $ref('');

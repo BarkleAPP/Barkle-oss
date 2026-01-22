@@ -20,8 +20,8 @@
 			<span v-if="emoji.isCustomEmoji" class="emoji"><img :src="defaultStore.state.disableShowingAnimatedImages ? getStaticImageUrl(emoji.url) : emoji.url" :alt="emoji.emoji"/></span>
 			<span v-else-if="!defaultStore.state.useOsNativeEmojis" class="emoji"><img :src="emoji.url" :alt="emoji.emoji"/></span>
 			<span v-else class="emoji">{{ emoji.emoji }}</span>
-			<!-- eslint-disable-next-line vue/no-v-html -->
-			<span class="name" v-html="emoji.name.replace(q, `<b>${q}</b>`)"></span>
+			<!-- Security: Use safe highlight function to prevent XSS -->
+			<span class="name" v-html="highlightQuery(emoji.name, q)"></span>
 			<span v-if="emoji.aliasOf" class="alias">({{ emoji.aliasOf }})</span>
 		</li>
 	</ol>
@@ -141,6 +141,28 @@ const items = ref<Element[] | HTMLCollection>([]);
 const mfmTags = ref<string[]>([]);
 const select = ref(-1);
 const zIndex = os.claimZIndex('high');
+
+// Security: Escape HTML to prevent XSS attacks
+function escapeHtml(unsafe: string): string {
+	return unsafe
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&#039;');
+}
+
+// Security: Safe highlight function that escapes HTML before highlighting
+function highlightQuery(name: string, query: string | null): string {
+	if (!query) return escapeHtml(name);
+	
+	// Escape both name and query first
+	const escapedName = escapeHtml(name);
+	const escapedQuery = escapeHtml(query);
+	
+	// Now it's safe to use the escaped strings in HTML
+	return escapedName.replace(new RegExp(`(${escapedQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'), '<b>$1</b>');
+}
 
 function complete(type: string, value: any) {
 	emit('done', { type, value });

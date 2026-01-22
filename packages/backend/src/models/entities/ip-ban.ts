@@ -1,4 +1,4 @@
-import { PrimaryColumn, Entity, Index, Column } from 'typeorm';
+import { PrimaryColumn, Entity, Index, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { id } from '../id.js';
 import { User } from './user.js';
 
@@ -7,7 +7,6 @@ import { User } from './user.js';
  * Tracks banned IP addresses for security
  */
 @Entity()
-@Index(['ip'], { unique: true })
 export class IpBan {
 	@PrimaryColumn(id())
 	public id: string;
@@ -24,6 +23,14 @@ export class IpBan {
 	})
 	public userId: User['id'] | null;
 
+	@ManyToOne(type => User, {
+		onDelete: 'CASCADE',
+		nullable: true,
+	})
+	@JoinColumn()
+	public user: User | null;
+
+	@Index({ unique: true })
 	@Column('varchar', {
 		length: 128,
 		comment: 'The banned IP address',
@@ -37,6 +44,7 @@ export class IpBan {
 	})
 	public reason: string | null;
 
+	@Index()
 	@Column('timestamp with time zone', {
 		nullable: true,
 		comment: 'When the ban expires (null for permanent)',

@@ -1,19 +1,27 @@
 import { db } from '@/db/postgre.js';
 import { IpBan } from '@/models/entities/ip-ban.js';
+import { genId } from '@/misc/gen-id.js';
 
 export const IpBanRepository = db.getRepository(IpBan).extend({
 	async isBanned(ip: string): Promise<boolean> {
-		const ban = await this.createQueryBuilder('ban')
-			.where('ban.ip = :ip', { ip })
-			.andWhere('(ban.expiresAt IS NULL OR ban.expiresAt > :now)', { now: new Date() })
-			.getOne();
+		try {
+			const ban = await this.createQueryBuilder('ban')
+				.where('ban.ip = :ip', { ip })
+				.andWhere('(ban.expiresAt IS NULL OR ban.expiresAt > :now)', { now: new Date() })
+				.getOne();
 
-		return !!ban;
+			return !!ban;
+		} catch (error) {
+			// If ip_ban table doesn't exist or has issues, fail open (allow access)
+			// This prevents blocking all API requests if the table isn't set up yet
+			console.error('Error checking IP ban status:', error);
+			return false;
+		}
 	},
 
 	async createBan(ip: string, userId: string | null, reason: string | null, expiresAt: Date | null = null): Promise<IpBan> {
 		const ban = this.create({
-			id: db.id?.generate() || Math.random().toString(),
+			id: genId(),
 			createdAt: new Date(),
 			userId,
 			ip,

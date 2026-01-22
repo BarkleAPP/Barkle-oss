@@ -9,9 +9,6 @@ import { ApiError } from './error.js';
 import Stripe from 'stripe';
 import crypto from 'crypto';
 import Logger from '@/services/logger.js';
-import { isIpBanned } from '@/misc/security/ip-ban.js';
-import { logSecurityEvent } from '@/services/security-event.js';
-import { SecurityEventType } from '@/models/entities/security-event.js';
 
 const logger = new Logger('webhook-middleware');
 
@@ -21,38 +18,11 @@ setInterval(() => {
 }, 1000 * 60 * 60);
 
 export default (endpoint: IEndpoint, ctx: Koa.Context) => new Promise<void>(async (res) => {
-	// Security: Check if IP is banned
-	const clientIp = ctx.ip;
-	if (await isIpBanned(clientIp)) {
-		// Log the banned access attempt
-		await logSecurityEvent(SecurityEventType.ACCESS_DENIED, {
-			ipAddress: clientIp,
-			userAgent: ctx.headers['user-agent'] || null,
-			details: {
-				reason: 'IP address is banned',
-				endpoint: endpoint.name,
-			},
-			severity: 'medium',
-		});
-
-		ctx.status = 403;
-		ctx.body = {
-			error: {
-				message: 'Access denied',
-				code: 'IP_BANNED',
-				id: 'ip_banned',
-				kind: 'client',
-			},
-		};
-		res();
-		return;
-	}
-
-	const body = ctx.is('multipart/form-data')
-		? (ctx.request as any).body
-		: ctx.method === 'GET'
-			? ctx.query
-			: ctx.request.body;
+    const body = ctx.is('multipart/form-data')
+        ? (ctx.request as any).body
+        : ctx.method === 'GET'
+            ? ctx.query
+            : ctx.request.body;
 
     const reply = (x?: any, y?: ApiError) => {
         if (x == null) {
@@ -76,15 +46,13 @@ export default (endpoint: IEndpoint, ctx: Koa.Context) => new Promise<void>(asyn
                 };
             } else {
                 // Standard API error format
-                // In production, hide internal error details to prevent information disclosure
-                const isDevelopment = process.env.NODE_ENV === 'development';
                 ctx.body = {
                     error: {
                         message: y!.message,
-                        code: isDevelopment ? y!.code : 'INTERNAL_ERROR',
-                        id: isDevelopment ? y!.id : '00000000-0000-0000-0000-000000000000',
+                        code: y!.code,
+                        id: y!.id,
                         kind: y!.kind,
-                        ...(isDevelopment && y!.info ? { info: y!.info } : {}),
+                        ...(y!.info ? { info: y!.info } : {}),
                     },
                 };
             }
