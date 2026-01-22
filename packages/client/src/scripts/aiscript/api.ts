@@ -27,7 +27,12 @@ export function createAiScriptEnv(opts) {
 			if (token) utils.assertString(token);
 			apiRequests++;
 			if (apiRequests > 16) return values.NULL;
-			const res = await os.api(ep.value, utils.valToJs(param), token ? token.value : (opts.token || null));
+			// Security: Validate endpoint to prevent directory traversal (CVE-2025-46559)
+			const endpoint = ep.value;
+			if (typeof endpoint !== 'string' || endpoint.includes('..') || endpoint.startsWith('/') || endpoint.includes('://')) {
+				return values.NULL;
+			}
+			const res = await os.api(endpoint, utils.valToJs(param), token ? token.value : (opts.token || null));
 			return utils.jsToVal(res);
 		}),
 		'Mk:save': values.FN_NATIVE(([key, value]) => {

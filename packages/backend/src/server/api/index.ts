@@ -58,10 +58,12 @@ const router = new Router();
 for (const endpoint of [...endpoints, ...compatibility]) {
 	if (endpoint.meta.requireFile) {
 		router.post(`/${endpoint.name}`, upload.single('file'), handler.bind(null, endpoint));
+		router.options(`/${endpoint.name}`, async ctx => { ctx.status = 204; });
 	} else {
 		// 後方互換性のため
 		if (endpoint.name.includes('-')) {
 			router.post(`/${endpoint.name.replace(/-/g, '_')}`, handler.bind(null, endpoint));
+			router.options(`/${endpoint.name.replace(/-/g, '_')}`, async ctx => { ctx.status = 204; });
 
 			if (endpoint.meta.allowGet) {
 				router.get(`/${endpoint.name.replace(/-/g, '_')}`, handler.bind(null, endpoint));
@@ -71,6 +73,7 @@ for (const endpoint of [...endpoints, ...compatibility]) {
 		}
 
 		router.post(`/${endpoint.name}`, handler.bind(null, endpoint));
+		router.options(`/${endpoint.name}`, async ctx => { ctx.status = 204; });
 
 		if (endpoint.meta.allowGet) {
 			router.get(`/${endpoint.name}`, handler.bind(null, endpoint));

@@ -1,6 +1,5 @@
 import { Brackets } from 'typeorm';
 import { Notes } from '@/models/index.js';
-import { safeForSql } from '@/misc/safe-for-sql.js';
 import { normalizeForSearch } from '@/misc/normalize-for-search.js';
 import define from '../../define.js';
 import { makePaginationQuery } from '../../common/make-pagination-query.js';
@@ -84,25 +83,22 @@ export default define(meta, paramDef, async (ps, me) => {
 	if (me) generateMutedUserQuery(query, me);
 	if (me) generateBlockedUserQuery(query, me);
 
-	try {
-		if (ps.tag) {
-			if (!safeForSql(ps.tag)) throw new Error('Injection');
-			query.andWhere(`'{"${normalizeForSearch(ps.tag)}"}' <@ note.tags`);
-		} else {
-			query.andWhere(new Brackets(qb => {
-				for (const tags of ps.query!) {
-					qb.orWhere(new Brackets(qb => {
-						for (const tag of tags) {
-							if (!safeForSql(tag)) throw new Error('Injection');
-							qb.andWhere(`'{"${normalizeForSearch(tag)}"}' <@ note.tags`);
-						}
-					}));
-				}
-			}));
-		}
-	} catch (e) {
-		if (e.message === 'Injection') return [];
-		throw e;
+	if (ps.tag) {
+		query.andWhere(
+			new Brackets(qb => {
+				qb.where('note.tags @> :tag', { tag: [normalizeForSearch(ps.tag)] });
+			})
+		);
+	} else {
+		query.andWhere(new Brackets(qb => {
+			for (const tags of ps.query!) {
+				qb.orWhere(new Brackets(qb2 => {
+					for (const tag of tags) {
+						qb2.andWhere('note.tags @> :tag', { tag: [normalizeForSearch(tag)] });
+					}
+				}));
+			}
+		}));
 	}
 
 	if (ps.reply != null) {

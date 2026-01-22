@@ -57,10 +57,15 @@ function getOriginHandler(config: Config) {
 	}
 
 	// DEFAULT SECURE BEHAVIOR:
-	// Allow same-origin requests, subdomains, and related domains, plus requests with no origin (mobile apps)
+	// Allow same-origin requests, subdomains, related domains, Capacitor apps, plus requests with no origin
 	return (origin: string | undefined) => {
 		// Allow requests with no origin (mobile apps, curl, etc.)
 		if (!origin) return true;
+
+		if (isCapacitorOrigin(origin)) return true;
+
+		// Allow localhost for development
+		if (isLocalhostOrigin(origin)) return true;
 
 		// Allow same-origin requests
 		if (origin === config.url) return true;
@@ -87,6 +92,45 @@ function getOriginHandler(config: Config) {
 
 		return false;
 	};
+}
+
+/**
+ * Check if the origin is from a Capacitor app
+ * Capacitor apps run locally on the device with these schemes
+ */
+function isCapacitorOrigin(origin: string): boolean {
+	const capacitorOrigins = [
+		'capacitor://localhost',
+		'ionic://localhost',
+		'http://localhost',
+		'https://localhost',
+		'capacitor://',
+		'ionic://',
+	];
+
+	return capacitorOrigins.some(co => origin === co || origin.startsWith(co));
+}
+
+/**
+ * Check if the origin is localhost for development
+ */
+function isLocalhostOrigin(origin: string): boolean {
+	try {
+		const url = new URL(origin);
+		const hostname = url.hostname;
+
+		// Allow localhost and 127.0.0.1
+		if (hostname === 'localhost' || hostname === '127.0.0.1') return true;
+
+		// Allow local network addresses (optional, for development)
+		if (hostname.startsWith('192.168.') || hostname.startsWith('10.') || hostname.startsWith('172.')) {
+			return true;
+		}
+
+		return false;
+	} catch {
+		return false;
+	}
 }
 
 /**

@@ -106,6 +106,7 @@ router.get('/signin/twitter', async ctx => {
 		path: '/',
 		secure: config.url.startsWith('https'),
 		httpOnly: true,
+		sameSite: 'lax',
 	});
 
 	ctx.redirect(twCtx.url);

@@ -9,6 +9,7 @@ import { StatusError } from '@/misc/fetch.js';
 import { FILE_TYPE_BROWSERSAFE } from '@/const.js';
 import { serverLogger } from '../index.js';
 import { isMimeImage } from '@/misc/is-mime-image.js';
+import config from '@/config/index.js';
 
 /**
  * Validates URL to prevent SSRF attacks
@@ -88,6 +89,31 @@ export async function proxyMedia(ctx: Koa.Context) {
 	if (typeof url !== 'string') {
 		ctx.status = 400;
 		return;
+	}
+
+	// Security: Prevent proxy loop attacks (CVE-2024-49363)
+	// Block requests that appear to be coming from another Misskey/Barkle proxy
+	const userAgent = ctx.headers['user-agent'] || '';
+	if (userAgent.includes('Misskey/') || userAgent.includes('Barkle/')) {
+		serverLogger.warn(`Blocked proxy loop attempt from User-Agent: ${userAgent}`);
+		ctx.status = 403;
+		ctx.body = { error: 'Proxy loop detected' };
+		return;
+	}
+
+	// Also block if the URL points to our own proxy endpoint
+	try {
+		const targetUrl = new URL(url);
+		const configUrl = new URL(config.url);
+		if (targetUrl.hostname === configUrl.hostname && 
+			(targetUrl.pathname.startsWith('/proxy') || targetUrl.pathname.startsWith('/files'))) {
+			serverLogger.warn(`Blocked self-referencing proxy request: ${url}`);
+			ctx.status = 403;
+			ctx.body = { error: 'Self-referencing proxy not allowed' };
+			return;
+		}
+	} catch {
+		// URL parsing failed, will be caught by isValidProxyUrl
 	}
 
 	// SSRF Protection: Validate URL before processing

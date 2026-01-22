@@ -18,7 +18,7 @@
 <div v-else v-size="{ max: [400, 350] }" class="mk-url-preview">
 	<transition :name="$store.state.animation ? 'zoom' : ''" mode="out-in">
 		<component :is="self ? 'MkA' : 'a'" v-if="!fetching" class="link" :class="{ compact }" :[attr]="self ? url.substr(local.length) : url" rel="nofollow noopener" :target="target" :title="url">
-			<div v-if="thumbnail" class="thumbnail" :style="`background-image: url('${thumbnail}')`">
+			<div v-if="thumbnail" class="thumbnail" :style="thumbnailStyle">
 				<button v-if="!playerEnabled && player.url" class="_button" :title="i18n.ts.enablePlayer" @click.prevent="playerEnabled = true"><i class="ph-play-circle-bold ph-lg"></i></button>
 			</div>
 			<article>
@@ -82,6 +82,24 @@ let isAppleMusic = $ref(false);
 let appleMusicEmbedUrl = $ref('');
 let isFLV = $ref(false);
 let videoElement: HTMLMediaElement | null = null;
+
+// Security: Sanitize thumbnail URL to prevent CSS injection (CVE-2025-46340)
+// Only allow http/https URLs and escape special characters
+const thumbnailStyle = $computed(() => {
+	if (!thumbnail) return {};
+	// Validate URL protocol - only allow http/https
+	try {
+		const url = new URL(thumbnail);
+		if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+			return {};
+		}
+	} catch {
+		return {};
+	}
+	// Use CSS.escape for safe URL handling or escape manually
+	const safeUrl = thumbnail.replace(/['"\\()]/g, '\\$&');
+	return { backgroundImage: `url('${safeUrl}')` };
+});
 
 const requestUrl = new URL(props.url);
 

@@ -115,6 +115,7 @@ router.get('/signin/github', async ctx => {
 		path: '/',
 		secure: config.url.startsWith('https'),
 		httpOnly: true,
+		sameSite: 'lax',
 	});
 
 	redisClient.set(sessid, JSON.stringify(params));

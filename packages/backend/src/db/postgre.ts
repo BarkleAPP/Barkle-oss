@@ -96,6 +96,8 @@ import { QuickBark } from '@/models/entities/quick-bark.js';
 import { QuickBarkView } from '@/models/entities/quick-bark-view.js';
 import { StripeEvent } from '@/models/entities/stripe-event.js';
 import { WebhookEvent } from '@/models/entities/webhook-event.js';
+import { SecurityEvent } from '@/models/entities/security-event.js';
+import { IpBan } from '@/models/entities/ip-ban.js';
 
 import { entities as charts } from '@/services/chart/entities.js';
 import { envOption } from '../env.js';
@@ -227,6 +229,8 @@ export const entities = [
 	QuickBarkView,
 	StripeEvent,
 	WebhookEvent,
+	SecurityEvent,
+	IpBan,
 	...charts,
 ];
 
@@ -293,12 +297,13 @@ export async function resetDb() {
 				emoji, federation_instance, firebase_token, following,
 				follow_request, gallery_like, gallery_post, gift_card,
 				gifted_subscription, hashtag, invitation_tracking,
+				ip_ban,
 				live_chat_message, messaging_message, messaging_message_reaction,
 				meta, moderation_log, muted_note, muting, note,
 				note_favorite, note_reaction, note_thread_muting, note_unread,
 				note_view, note_watching, notification, notification_schedule,
 				password_reset_request, poll, poll_vote, promo_note, promo_read,
-				registry, relay, signin, stripe_event, stream_moderators,
+				registry, relay, security_event, signin, stripe_event, stream_moderators,
 				sw_subscription, timeline_cache, used_username, user,
 				user_algorithm_experiment, user_algorithm_profile, user_behavioral_data,
 				user_group, user_group_invitation, user_group_joining, user_ip,
