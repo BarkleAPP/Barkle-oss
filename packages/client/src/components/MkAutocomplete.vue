@@ -1,36 +1,39 @@
 <template>
-<div ref="rootEl" class="swhvrteh _popup _shadow" :style="{ zIndex }" @contextmenu.prevent="() => {}">
-	<ol v-if="type === 'user'" ref="suggests" class="users">
-		<li v-for="user in users" tabindex="-1" class="user" @click="complete(type, user)" @keydown="onKeydown">
-			<img class="avatar" :src="user.avatarUrl"/>
-			<span class="name">
-				<MkUserName :key="user.id" :user="user"/>
-			</span>
-			<span class="username">@{{ acct(user) }}</span>
-		</li>
-		<li tabindex="-1" class="choose" @click="chooseUser()" @keydown="onKeydown">{{ i18n.ts.selectUser }}</li>
-	</ol>
-	<ol v-else-if="hashtags.length > 0" ref="suggests" class="hashtags">
-		<li v-for="hashtag in hashtags" tabindex="-1" @click="complete(type, hashtag)" @keydown="onKeydown">
-			<span class="name">{{ hashtag }}</span>
-		</li>
-	</ol>
-	<ol v-else-if="emojis.length > 0" ref="suggests" class="emojis">
-		<li v-for="emoji in emojis" tabindex="-1" @click="complete(type, emoji.emoji)" @keydown="onKeydown">
-			<span v-if="emoji.isCustomEmoji" class="emoji"><img :src="defaultStore.state.disableShowingAnimatedImages ? getStaticImageUrl(emoji.url) : emoji.url" :alt="emoji.emoji"/></span>
-			<span v-else-if="!defaultStore.state.useOsNativeEmojis" class="emoji"><img :src="emoji.url" :alt="emoji.emoji"/></span>
-			<span v-else class="emoji">{{ emoji.emoji }}</span>
-			<!-- Security: Use safe highlight function to prevent XSS -->
-			<span class="name" v-html="highlightQuery(emoji.name, q)"></span>
-			<span v-if="emoji.aliasOf" class="alias">({{ emoji.aliasOf }})</span>
-		</li>
-	</ol>
-	<ol v-else-if="mfmTags.length > 0" ref="suggests" class="mfmTags">
-		<li v-for="tag in mfmTags" tabindex="-1" @click="complete(type, tag)" @keydown="onKeydown">
-			<span class="tag">{{ tag }}</span>
-		</li>
-	</ol>
-</div>
+	<div ref="rootEl" class="swhvrteh _popup _shadow" :style="{ zIndex }" @contextmenu.prevent="() => { }">
+		<ol v-if="type === 'user'" ref="suggests" class="users">
+			<li v-for="user in users" tabindex="-1" class="user" @click="complete(type, user)" @keydown="onKeydown">
+				<img class="avatar" :src="user.avatarUrl" />
+				<span class="name">
+					<MkUserName :key="user.id" :user="user" />
+				</span>
+				<span class="username">@{{ acct(user) }}</span>
+			</li>
+			<li tabindex="-1" class="choose" @click="chooseUser()" @keydown="onKeydown">{{ i18n.ts.selectUser }}</li>
+		</ol>
+		<ol v-else-if="hashtags.length > 0" ref="suggests" class="hashtags">
+			<li v-for="hashtag in hashtags" tabindex="-1" @click="complete(type, hashtag)" @keydown="onKeydown">
+				<span class="name">{{ hashtag }}</span>
+			</li>
+		</ol>
+		<ol v-else-if="emojis.length > 0" ref="suggests" class="emojis">
+			<li v-for="emoji in emojis" tabindex="-1" @click="complete(type, emoji.emoji)" @keydown="onKeydown">
+				<span v-if="emoji.isCustomEmoji" class="emoji"><img
+						:src="defaultStore.state.disableShowingAnimatedImages ? getStaticImageUrl(emoji.url) : emoji.url"
+						:alt="emoji.emoji" /></span>
+				<span v-else-if="!defaultStore.state.useOsNativeEmojis" class="emoji"><img :src="emoji.url"
+						:alt="emoji.emoji" /></span>
+				<span v-else class="emoji">{{ emoji.emoji }}</span>
+				<!-- Security: Use safe highlight function to prevent XSS -->
+				<span class="name" v-html="highlightQuery(emoji.name, q)"></span>
+				<span v-if="emoji.aliasOf" class="alias">({{ emoji.aliasOf }})</span>
+			</li>
+		</ol>
+		<ol v-else-if="mfmTags.length > 0" ref="suggests" class="mfmTags">
+			<li v-for="tag in mfmTags" tabindex="-1" @click="complete(type, tag)" @keydown="onKeydown">
+				<span class="tag">{{ tag }}</span>
+			</li>
+		</ol>
+	</div>
 </template>
 
 <script lang="ts">
@@ -155,11 +158,11 @@ function escapeHtml(unsafe: string): string {
 // Security: Safe highlight function that escapes HTML before highlighting
 function highlightQuery(name: string, query: string | null): string {
 	if (!query) return escapeHtml(name);
-	
+
 	// Escape both name and query first
 	const escapedName = escapeHtml(name);
 	const escapedQuery = escapeHtml(query);
-	
+
 	// Now it's safe to use the escaped strings in HTML
 	return escapedName.replace(new RegExp(`(${escapedQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'), '<b>$1</b>');
 }
@@ -404,7 +407,7 @@ onBeforeUnmount(() => {
 	overflow: hidden;
 	transition: top 0.1s ease, left 0.1s ease;
 
-	> ol {
+	>ol {
 		display: block;
 		margin: 0;
 		padding: 4px 0;
@@ -413,7 +416,7 @@ onBeforeUnmount(() => {
 		overflow: auto;
 		list-style: none;
 
-		> li {
+		>li {
 			display: flex;
 			align-items: center;
 			padding: 4px 12px;
@@ -422,7 +425,8 @@ onBeforeUnmount(() => {
 			font-size: 0.9em;
 			cursor: default;
 
-			&, * {
+			&,
+			* {
 				user-select: none;
 			}
 
@@ -438,7 +442,8 @@ onBeforeUnmount(() => {
 			&[data-selected='true'] {
 				background: var(--accent);
 
-				&, * {
+				&,
+				* {
 					color: #fff !important;
 				}
 			}
@@ -446,14 +451,15 @@ onBeforeUnmount(() => {
 			&:active {
 				background: var(--accentDarken);
 
-				&, * {
+				&,
+				* {
 					color: #fff !important;
 				}
 			}
 		}
 	}
 
-	> .users > li {
+	>.users>li {
 
 		.avatar {
 			min-width: 28px;
@@ -469,14 +475,14 @@ onBeforeUnmount(() => {
 		}
 	}
 
-	> .emojis > li {
+	>.emojis>li {
 
 		.emoji {
 			display: inline-block;
 			margin: 0 4px 0 0;
 			width: 24px;
 
-			> img {
+			>img {
 				width: 24px;
 				vertical-align: bottom;
 			}
@@ -487,10 +493,9 @@ onBeforeUnmount(() => {
 		}
 	}
 
-	> .mfmTags > li {
+	>.mfmTags>li {
 
-		.name {
-		}
+		.name {}
 	}
 }
 </style>
