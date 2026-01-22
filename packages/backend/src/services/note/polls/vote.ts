@@ -48,9 +48,12 @@ export default async function(user: CacheableUser, note: Note, choice: number) {
 		choice: choice,
 	});
 
-	// Increment votes count
+	// Increment votes count - Use TypeORM with parameterized query to prevent SQL injection
 	const index = choice + 1; // In SQL, array index is 1 based
-	await Polls.query(`UPDATE poll SET votes[${index}] = votes[${index}] + 1 WHERE "noteId" = '${poll.noteId}'`);
+	await Polls.query(
+		'UPDATE poll SET votes[$1] = votes[$1] + 1 WHERE "noteId" = $2',
+		[index, poll.noteId]
+	);
 
 	publishNoteStream(note.id, 'pollVoted', {
 		choice: choice,

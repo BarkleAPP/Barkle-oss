@@ -19,17 +19,17 @@ export const paramDef = {
 } as const;
 
 export default define(meta, paramDef, async (ps, me) => {
-	const params: string[] = [];
-
-	if (ps.full) {
-		params.push('FULL');
+	// Use static SQL queries with no string concatenation to prevent SQL injection
+	// Only execute specific, pre-defined VACUUM commands
+	if (ps.full && ps.analyze) {
+		await db.query('VACUUM FULL ANALYZE');
+	} else if (ps.full) {
+		await db.query('VACUUM FULL');
+	} else if (ps.analyze) {
+		await db.query('VACUUM ANALYZE');
+	} else {
+		await db.query('VACUUM');
 	}
-
-	if (ps.analyze) {
-		params.push('ANALYZE');
-	}
-
-	db.query('VACUUM ' + params.join(' '));
 
 	insertModerationLog(me, 'vacuum', ps);
 });

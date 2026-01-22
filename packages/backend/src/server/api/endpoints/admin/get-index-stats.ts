@@ -15,7 +15,8 @@ export const paramDef = {
 } as const;
 
 export default define(meta, paramDef, async () => {
-	const stats = await db.query(`SELECT * FROM pg_indexes;`).then(recs => {
+	// Use static SQL query (no user input) for index statistics
+	const stats = await db.query(`SELECT * FROM pg_indexes`).then(recs => {
 		const res = [] as { tablename: string; indexname: string; }[];
 		for (const rec of recs) {
 			res.push(rec);

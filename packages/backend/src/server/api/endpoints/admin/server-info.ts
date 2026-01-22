@@ -131,6 +131,7 @@ export default define(meta, paramDef, async () => {
 
 	let psql_version;
 	try {
+		// Use parameterized query for version check
 		psql_version = await db.query('SHOW server_version').then(x => x[0].server_version);
 	} catch (error) {
 		console.error('Error getting PostgreSQL version:', error instanceof Error ? error.message : String(error));

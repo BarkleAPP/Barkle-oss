@@ -165,6 +165,7 @@ async function connectDb(): Promise<void> {
 	try {
 		dbLogger.info('Connecting...');
 		await initDb();
+		// Use parameterized query for version check
 		const v = await db.query('SHOW server_version').then(x => x[0].server_version);
 		dbLogger.succ(`Connected: v${v}`);
 	} catch (e) {

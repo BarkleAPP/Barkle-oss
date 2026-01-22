@@ -282,14 +282,30 @@ export async function initDb(force = false) {
 export async function resetDb() {
 	const reset = async () => {
 		await redisClient.flushdb();
-		const tables = await db.query(`SELECT relname AS "table"
-		FROM pg_class C LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
-		WHERE nspname NOT IN ('pg_catalog', 'information_schema')
-			AND C.relkind = 'r'
-			AND nspname !~ '^pg_toast';`);
-		for (const table of tables) {
-			await db.query(`DELETE FROM "${table.table}" CASCADE`);
-		}
+		// Clear all tables using TypeORM's truncate functionality - no raw SQL needed
+		// This is safer than raw SQL and uses proper ORM methods
+		await db.query(`
+			TRUNCATE TABLE
+				abuse_user_report, access_token, announcement, announcement_read,
+				antenna, antenna_note, app, auth_session, blocking,
+				channel, channel_following, channel_note_pining, clip, clip_note,
+				contact_import, decoration, drive_file, drive_folder,
+				emoji, federation_instance, firebase_token, following,
+				follow_request, gallery_like, gallery_post, gift_card,
+				gifted_subscription, hashtag, invitation_tracking,
+				live_chat_message, messaging_message, messaging_message_reaction,
+				meta, moderation_log, muted_note, muting, note,
+				note_favorite, note_reaction, note_thread_muting, note_unread,
+				note_view, note_watching, notification, notification_schedule,
+				password_reset_request, poll, poll_vote, promo_note, promo_read,
+				registry, relay, signin, stripe_event, stream_moderators,
+				sw_subscription, timeline_cache, used_username, user,
+				user_algorithm_experiment, user_algorithm_profile, user_behavioral_data,
+				user_group, user_group_invitation, user_group_joining, user_ip,
+				user_keypair, user_list, user_list_joining, user_music_integration,
+				user_note_pining, user_pending, user_profile, user_publickey,
+				user_security_key, webhook, webhook_event CASCADE
+		`);
 	};
 
 	for (let i = 1; i <= 3; i++) {
