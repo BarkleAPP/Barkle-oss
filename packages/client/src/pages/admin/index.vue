@@ -143,6 +143,16 @@ const menuDef = $computed(() => [{
 		text: i18n.ts.abuseReports,
 		to: '/admin/abuses',
 		active: currentPage?.route.name === 'abuses',
+	}, {
+		icon: 'ph-clipboard-text-bold ph-lg',
+		text: 'Audit Logs',
+		to: '/admin/audit-logs',
+		active: currentPage?.route.name === 'audit-logs',
+	}, {
+		icon: 'ph-shield-warning-bold ph-lg',
+		text: 'Security Events',
+		to: '/admin/security-events',
+		active: currentPage?.route.name === 'security-events',
 	}],
 }, ...($i?.isAdmin ? [{
 	title: i18n.ts.settings,

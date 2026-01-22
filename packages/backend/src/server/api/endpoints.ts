@@ -60,6 +60,9 @@ import * as ep___admin_remove_trial_user from './endpoints/admin/stripe/remove-t
 import * as ep___admin_make_customer from './endpoints/admin/stripe/make-customer.js';
 import * as ep___admin_serverInfo from './endpoints/admin/server-info.js';
 import * as ep___admin_showModerationLogs from './endpoints/admin/show-moderation-logs.js';
+import * as ep___admin_showSecurityEvents from './endpoints/admin/show-security-events.js';
+import * as ep___admin_markSecurityEventReviewed from './endpoints/admin/mark-security-event-reviewed.js';
+import * as ep___admin_getSecurityStats from './endpoints/admin/get-security-stats.js';
 import * as ep___admin_showUser from './endpoints/admin/show-user.js';
 import * as ep___admin_showUsers from './endpoints/admin/show-users.js';
 import * as ep___admin_silenceUser from './endpoints/admin/silence-user.js';
@@ -471,6 +474,9 @@ const eps: Array<[string, any]> = [
 	['admin/remove-trial-user', ep___admin_remove_trial_user],
 	['admin/server-info', ep___admin_serverInfo],
 	['admin/show-moderation-logs', ep___admin_showModerationLogs],
+	['admin/show-security-events', ep___admin_showSecurityEvents],
+	['admin/mark-security-event-reviewed', ep___admin_markSecurityEventReviewed],
+	['admin/get-security-stats', ep___admin_getSecurityStats],
 	['admin/show-user', ep___admin_showUser],
 	['admin/show-users', ep___admin_showUsers],
 	['admin/silence-user', ep___admin_silenceUser],

@@ -209,11 +209,18 @@ export function sanitizeObject<T extends Record<string, any>>(obj: T): Partial<T
 /**
  * Validate and sanitize user mention
  * - Format: @username@host
+ * - Uses simple, safe regex patterns to prevent ReDoS
  */
 export function sanitizeMention(mention: string): string {
 	const trimmed = mention.trim();
 
+	// Limit input length to prevent potential DoS
+	if (trimmed.length > 500) {
+		throw new Error('Mention too long');
+	}
+
 	// Check if it matches the mention format
+	// Using simple character classes without nested quantifiers to prevent ReDoS
 	const mentionRegex = /^@?[a-zA-Z0-9_-]+(?:@[\w.-]+)?$/;
 
 	if (!mentionRegex.test(trimmed)) {
@@ -231,10 +238,16 @@ export function sanitizeMention(mention: string): string {
  * - Limit length
  */
 export function sanitizeHashtag(tag: string): string {
+	// Limit input length first to prevent potential DoS
+	if (tag.length > 500) {
+		throw new Error('Hashtag too long');
+	}
+
 	// Remove # prefix if present
 	let sanitized = tag.startsWith('#') ? tag.slice(1) : tag;
 
 	// Only allow alphanumeric, underscores, and hyphens
+	// Simple character class without nested quantifiers
 	sanitized = sanitized.replace(/[^a-zA-Z0-9_-]/g, '');
 
 	// Limit length

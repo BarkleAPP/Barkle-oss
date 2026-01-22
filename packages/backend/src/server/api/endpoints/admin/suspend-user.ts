@@ -1,10 +1,13 @@
 import define from '../../define.js';
 import deleteFollowing from '@/services/following/delete.js';
-import { Users, Followings, Notifications } from '@/models/index.js';
+import { Users, Followings, Notifications, UserIps } from '@/models/index.js';
 import { User } from '@/models/entities/user.js';
 import { insertModerationLog } from '@/services/insert-moderation-log.js';
 import { doPostSuspend } from '@/services/suspend-user.js';
 import { publishUserEvent } from '@/services/stream.js';
+import { createIpBan } from '@/misc/security/ip-ban.js';
+import { genId } from '@/misc/gen-id.js';
+import { db } from '@/db/postgre.js';
 
 export const meta = {
 	tags: ['admin'],
@@ -47,6 +50,17 @@ export default define(meta, paramDef, async (ps, me) => {
 	// Terminate streaming
 	if (Users.isLocalUser(user)) {
 		publishUserEvent(user.id, 'terminate', {});
+	}
+
+	// Ban all IPs associated with this user
+	const userIpRecords = await UserIps.findBy({ userId: user.id });
+	for (const ipRecord of userIpRecords) {
+		await createIpBan(
+			ipRecord.ip,
+			user.id,
+			`User suspended: @${user.username}`,
+			null // Permanent ban
+		);
 	}
 
 	(async () => {

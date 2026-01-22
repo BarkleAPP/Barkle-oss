@@ -2,6 +2,7 @@ import define from '../../define.js';
 import { Users } from '@/models/index.js';
 import { insertModerationLog } from '@/services/insert-moderation-log.js';
 import { doPostUnsuspend } from '@/services/unsuspend-user.js';
+import { removeUserIpBans } from '@/misc/security/ip-ban.js';
 
 export const meta = {
 	tags: ['admin'],
@@ -32,6 +33,9 @@ export default define(meta, paramDef, async (ps, me) => {
 	insertModerationLog(me, 'unsuspend', {
 		targetId: user.id,
 	});
+
+	// Remove all IP bans for this user
+	await removeUserIpBans(user.id);
 
 	doPostUnsuspend(user);
 });

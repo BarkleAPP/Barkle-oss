@@ -2,9 +2,16 @@ import define from '../../../define.js';
 import { Users } from '@/models/index.js';
 import { signup } from '../../../common/signup.js';
 import { IsNull } from 'typeorm';
+import { HOUR, MINUTE } from '@/const.js';
 
 export const meta = {
 	tags: ['admin'],
+
+	limit: {
+		duration: HOUR,
+		max: 10,
+		minInterval: MINUTE,
+	},
 
 	res: {
 		type: 'object',

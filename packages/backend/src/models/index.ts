@@ -92,6 +92,10 @@ import { AlgorithmExperiment } from './entities/algorithm-experiment.js';
 import { UserAlgorithmExperiment } from './entities/user-algorithm-experiment.js';
 import { NoteView } from './entities/note-view.js';
 import { BarktresScore } from './entities/barktres-score.js';
+import { SecurityEvent } from './entities/security-event.js';
+import { SecurityEventRepository } from './repositories/security-events.js';
+import { IpBan } from './entities/ip-ban.js';
+import { IpBanRepository } from './repositories/ip-bans.js';
 
 export const Announcements = db.getRepository(Announcement);
 export const AnnouncementReads = db.getRepository(AnnouncementRead);
@@ -184,3 +188,5 @@ export const UserAlgorithmExperiments = db.getRepository(UserAlgorithmExperiment
 export const NoteViews = db.getRepository(NoteView);
 export const BarktresScores = db.getRepository(BarktresScore);
 export const QuickBarks = QuickBarkRepository;
+export const SecurityEvents = (SecurityEventRepository);
+export const IpBans = (IpBanRepository);

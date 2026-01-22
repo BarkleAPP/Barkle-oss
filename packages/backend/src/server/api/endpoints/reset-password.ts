@@ -3,6 +3,7 @@ import { publishMainStream } from '@/services/stream.js';
 import { Users, UserProfiles, PasswordResetRequests } from '@/models/index.js';
 import define from '../define.js';
 import { ApiError } from '../error.js';
+import { MINUTE } from '@/const.js';
 
 export const meta = {
 	tags: ['reset password'],
@@ -10,6 +11,12 @@ export const meta = {
 	requireCredential: false,
 
 	description: 'Complete the password reset that was previously requested.',
+
+	limit: {
+		duration: MINUTE * 30,
+		max: 3,
+		minInterval: MINUTE,
+	},
 
 	errors: {
 

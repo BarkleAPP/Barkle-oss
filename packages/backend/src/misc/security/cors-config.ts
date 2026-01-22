@@ -57,14 +57,54 @@ function getOriginHandler(config: Config) {
 	}
 
 	// DEFAULT SECURE BEHAVIOR:
-	// Allow same-origin requests AND requests with no origin (mobile apps)
+	// Allow same-origin requests, subdomains, and related domains, plus requests with no origin (mobile apps)
 	return (origin: string | undefined) => {
 		// Allow requests with no origin (mobile apps, curl, etc.)
 		if (!origin) return true;
 
 		// Allow same-origin requests
-		return origin === config.url;
+		if (origin === config.url) return true;
+
+		// Allow subdomains of the instance
+		try {
+			const instanceUrl = new URL(config.url);
+			const originUrl = new URL(origin);
+
+			// Allow same domain with different subdomains
+			// e.g., beta.barkle.chat can access barkle.chat API
+			if (instanceUrl.hostname === originUrl.hostname) return true;
+
+			// Allow subdomains of the main domain
+			// e.g., beta.barkle.chat can access api.barkle.chat
+			const mainDomain = getMainDomain(instanceUrl.hostname);
+			const originDomain = getMainDomain(originUrl.hostname);
+			if (mainDomain && mainDomain === originDomain) return true;
+
+		} catch (e) {
+			// Invalid URLs, deny
+			return false;
+		}
+
+		return false;
 	};
+}
+
+/**
+ * Extract the main domain from a hostname
+ * e.g., "beta.barkle.chat" -> "barkle.chat"
+ * e.g., "api.barkle.chat" -> "barkle.chat"
+ * e.g., "barkle.chat" -> "barkle.chat"
+ */
+function getMainDomain(hostname: string): string | null {
+	const parts = hostname.split('.');
+
+	// For domains like "barkle.chat", return as is
+	if (parts.length <= 2) return hostname;
+
+	// For subdomains like "beta.barkle.chat", return "barkle.chat"
+	// This assumes a TLD length of 2, which works for most cases
+	// For more complex TLDs, you'd need a public suffix list
+	return parts.slice(-2).join('.');
 }
 
 /**

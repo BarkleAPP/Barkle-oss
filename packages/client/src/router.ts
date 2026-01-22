@@ -491,6 +491,14 @@ export const routes = [{
 		name: 'security',
 		component: page(() => import('./pages/admin/security.vue')),
 	}, {
+		path: '/audit-logs',
+		name: 'audit-logs',
+		component: page(() => import('./pages/admin/audit-logs.vue')),
+	}, {
+		path: '/security-events',
+		name: 'security-events',
+		component: page(() => import('./pages/admin/security-events.vue')),
+	}, {
 		path: '/relays',
 		name: 'relays',
 		component: page(() => import('./pages/admin/relays.vue')),

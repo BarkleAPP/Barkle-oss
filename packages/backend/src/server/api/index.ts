@@ -84,6 +84,11 @@ router.post('/signup', signup);
 router.post('/signin', signin);
 router.post('/signup-pending', signupPending);
 
+// Handle OPTIONS preflight requests for CORS
+router.options('/signup', async ctx => { ctx.status = 204; });
+router.options('/signin', async ctx => { ctx.status = 204; });
+router.options('/signup-pending', async ctx => { ctx.status = 204; });
+
 router.use(discord.routes());
 router.use(github.routes());
 router.use(twitter.routes());
