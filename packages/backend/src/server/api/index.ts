@@ -6,7 +6,6 @@ import Koa from 'koa';
 import Router from '@koa/router';
 import multer from '@koa/multer';
 import bodyParser from 'koa-bodyparser';
-import cors from '@koa/cors';
 import { Instances, AccessTokens, Users } from '@/models/index.js';
 import config from '@/config/index.js';
 import endpoints from './endpoints.js';
@@ -19,13 +18,13 @@ import discord from './service/discord.js';
 import github from './service/github.js';
 import twitter from './service/twitter.js';
 import spotify from './service/spotify.js';
+import { createCorsMiddleware } from '@/misc/security/cors-config.js';
 
 // Init app
 const app = new Koa();
 
-app.use(cors({
-	origin: '*',
-}));
+// Apply secure CORS configuration
+app.use(createCorsMiddleware(config));
 
 // No caching
 app.use(async (ctx, next) => {

@@ -10,12 +10,91 @@ import { FILE_TYPE_BROWSERSAFE } from '@/const.js';
 import { serverLogger } from '../index.js';
 import { isMimeImage } from '@/misc/is-mime-image.js';
 
+/**
+ * Validates URL to prevent SSRF attacks
+ * - Blocks private IP addresses
+ * - Blocks localhost and internal network addresses
+ * - Validates URL format
+ */
+function isValidProxyUrl(urlString: string): boolean {
+	try {
+		const url = new URL(urlString);
+
+		// Only allow http and https protocols
+		if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+			return false;
+		}
+
+		// Block localhost and common internal hostnames
+		const blockedHostnames = [
+			'localhost',
+			'127.0.0.1',
+			'0.0.0.0',
+			'[::1]',
+			'localhost.localdomain',
+			'ip6-localhost',
+			'ip6-loopback',
+		];
+
+		if (blockedHostnames.includes(url.hostname.toLowerCase())) {
+			return false;
+		}
+
+		// Block private IP ranges (basic check)
+		// Note: This is a basic check; download-url.ts has more comprehensive private IP blocking
+		const hostname = url.hostname.toLowerCase();
+
+		// Check for private IP patterns
+		const privateIpPatterns = [
+			/^10\./,
+			/^172\.(1[6-9]|2[0-9]|3[0-1])\./,
+			/^192\.168\./,
+			/^127\./,
+			/^169\.254\./,
+			/^fc00:/i,
+			/^fe80:/i,
+			/^::1$/i,
+			/^::$/,
+		];
+
+		for (const pattern of privateIpPatterns) {
+			if (pattern.test(hostname)) {
+				return false;
+			}
+		}
+
+		// Check for metadata service endpoints
+		const blockedEndpoints = [
+			'metadata',
+			'169.254.169.254',
+			'metadata.google.internal',
+			'instance-data',
+		];
+
+		if (blockedEndpoints.some(endpoint => hostname.includes(endpoint))) {
+			return false;
+		}
+
+		return true;
+	} catch (e) {
+		return false;
+	}
+}
+
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export async function proxyMedia(ctx: Koa.Context) {
 	const url = 'url' in ctx.query ? ctx.query.url : 'https://' + ctx.params.url;
 
 	if (typeof url !== 'string') {
 		ctx.status = 400;
+		return;
+	}
+
+	// SSRF Protection: Validate URL before processing
+	if (!isValidProxyUrl(url)) {
+		serverLogger.warn(`Blocked potentially malicious proxy request: ${url}`);
+		ctx.status = 403;
+		ctx.body = { error: 'Invalid URL' };
 		return;
 	}
 

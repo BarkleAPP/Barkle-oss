@@ -4,7 +4,7 @@ import { IImage, convertToJpeg } from './image-processor.js';
 import FFmpeg from 'fluent-ffmpeg';
 import { findFFmpeg, findFFprobe } from '@/misc/ffmpeg-path.js';
 import Logger from '@/services/logger.js';
-import { execSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 
 const logger = new Logger('generate-video-thumbnail');
 
@@ -37,10 +37,38 @@ export async function GenerateVideoThumbnail(source: string): Promise<IImage> {
 		ffmpegAvailable = !!(ffmpegPath && typeof ffmpegPath === 'string' && !ffmpegPath.includes('not-found') && fs.existsSync(ffmpegPath));
 
 		if (ffmpegAvailable) {
-			// Test FFmpeg execution
+			// Test FFmpeg execution using spawn to prevent command injection
 			try {
-				const version = execSync(`${ffmpegPath} -version 2>&1 | head -1`, { encoding: 'utf-8', timeout: 5000 });
-				logger.info(`FFmpeg version check: ${version.trim()}`);
+				const args = ['-version'];
+				const result = spawn(ffmpegPath, args, { timeout: 5000 });
+
+				// Wait for the process to complete
+				await new Promise<void>((resolve, reject) => {
+					let output = '';
+					let errorOutput = '';
+
+					result.stdout?.on('data', (data) => {
+						output += data.toString();
+					});
+
+					result.stderr?.on('data', (data) => {
+						errorOutput += data.toString();
+					});
+
+					result.on('close', (code) => {
+						if (code === 0) {
+							const version = output.split('\n')[0];
+							logger.info(`FFmpeg version check: ${version}`);
+							resolve();
+						} else {
+							reject(new Error(`FFmpeg exited with code ${code}: ${errorOutput}`));
+						}
+					});
+
+					result.on('error', (err) => {
+						reject(err);
+					});
+				});
 			} catch (execError) {
 				logger.error('FFmpeg execution test failed:', { error: execError instanceof Error ? execError.message : String(execError) });
 				ffmpegAvailable = false;

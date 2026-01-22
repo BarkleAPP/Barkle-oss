@@ -131,6 +131,37 @@ export type Source = {
 		positiveReactions?: string[];
 		negativeReactions?: string[];
 	};
+
+	// Security: CORS configuration
+	cors?: {
+		// Array of allowed origins. If not specified, defaults to the instance URL.
+		// Set to '*' to allow all origins (NOT RECOMMENDED for production).
+		// Supports wildcard subdomains: ['https://*.example.com']
+		// IMPORTANT: Requests with NO origin header (native mobile apps, curl) are ALWAYS allowed
+		// Example: ['https://example.com', 'https://app.example.com', 'https://*.example.com']
+		allowedOrigins?: string[];
+
+		// Whether to allow credentials (cookies, authorization headers)
+		// Default: true
+		// Set to false for public endpoints that don't need authentication
+		allowCredentials?: boolean;
+
+		// Allowed HTTP methods
+		// Default: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD']
+		allowedMethods?: string[];
+
+		// Allowed headers in requests
+		// Default: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
+		allowedHeaders?: string[];
+
+		// Exposed headers that browsers can read
+		// Default: ['Content-Length', 'Content-Type', 'Content-Range']
+		exposeHeaders?: string[];
+
+		// Max age for preflight requests (in seconds)
+		// Default: 86400 (24 hours)
+		maxAge?: number;
+	};
 };
 
 /**
