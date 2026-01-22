@@ -105,7 +105,7 @@ export async function proxyMedia(ctx: Koa.Context) {
 	try {
 		const targetUrl = new URL(url);
 		const configUrl = new URL(config.url);
-		if (targetUrl.hostname === configUrl.hostname && 
+		if (targetUrl.hostname === configUrl.hostname &&
 			(targetUrl.pathname.startsWith('/proxy') || targetUrl.pathname.startsWith('/files'))) {
 			serverLogger.warn(`Blocked self-referencing proxy request: ${url}`);
 			ctx.status = 403;
@@ -174,7 +174,7 @@ export async function proxyMedia(ctx: Koa.Context) {
 				ext: 'png',
 				type: 'image/png',
 			};
-		}	else if (mime === 'image/svg+xml') {
+		} else if (mime === 'image/svg+xml') {
 			image = await convertToWebp(path, 2048, 2048, 1);
 		} else if (!mime.startsWith('image/') || !FILE_TYPE_BROWSERSAFE.includes(mime)) {
 			throw new StatusError('Rejected type', 403, 'Rejected type');

@@ -6,7 +6,7 @@ import { Signins } from '@/models/index.js';
 import { genId } from '@/misc/gen-id.js';
 import { publishMainStream } from '@/services/stream.js';
 
-export default function(ctx: Koa.Context, user: ILocalUser, redirect = false) {
+export default function (ctx: Koa.Context, user: ILocalUser, redirect = false) {
 	if (redirect) {
 		//#region Cookie
 		ctx.cookies.set('igi', user.token!, {

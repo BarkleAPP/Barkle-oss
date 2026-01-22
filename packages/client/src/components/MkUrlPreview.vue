@@ -1,44 +1,54 @@
 <template>
-<div v-if="playerEnabled" class="player" :style="`padding: ${(player.height || 0) / (player.width || 1) * 100}% 0 0`">
-	<button class="disablePlayer" :title="i18n.ts.disablePlayer" @click="playerEnabled = false"><i class="ph-x-bold ph-lg"></i></button>
-	<iframe :src="player.url + (player.url.match(/\?/) ? '&autoplay=1&auto_play=1' : '?autoplay=1&auto_play=1')" :width="player.width || '100%'" :heigth="player.height || 250" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen/>
-</div>
-<!--<div v-else-if="isAppleMusic" class="apple-music">
+	<div v-if="playerEnabled" class="player"
+		:style="`padding: ${(player.height || 0) / (player.width || 1) * 100}% 0 0`">
+		<button class="disablePlayer" :title="i18n.ts.disablePlayer" @click="playerEnabled = false"><i
+				class="ph-x-bold ph-lg"></i></button>
+		<iframe :src="player.url + (player.url.match(/\?/) ? '&autoplay=1&auto_play=1' : '?autoplay=1&auto_play=1')"
+			:width="player.width || '100%'" :heigth="player.height || 250" frameborder="0"
+			allow="autoplay; encrypted-media" allowfullscreen />
+	</div>
+	<!--<div v-else-if="isAppleMusic" class="apple-music">
 	<iframe :src="appleMusicEmbedUrl" width="660" height="315" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>
 </div>-->
-<div v-else-if="isSpotify" class="spotify">
-    <iframe :src="'https://open.spotify.com/embed/' + spotifyType + '/' + spotifyId" width="300" height="380" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>
-  </div>
-<div v-else-if="tweetId && tweetExpanded" ref="twitter" class="twitter">
-	<iframe ref="tweet" scrolling="no" frameborder="no" :style="{ position: 'relative', width: '100%', height: `${tweetHeight}px` }" :src="`https://platform.twitter.com/embed/index.html?embedId=${embedId}&amp;hideCard=false&amp;hideThread=false&amp;lang=en&amp;theme=${$store.state.darkMode ? 'dark' : 'light'}&amp;id=${tweetId}`"></iframe>
-</div>
-<div v-else-if="isFLV" class="flv-player">
-    <XLive :url="props.url" class="flv-media"/>
-  </div>
-<div v-else v-size="{ max: [400, 350] }" class="mk-url-preview">
-	<transition :name="$store.state.animation ? 'zoom' : ''" mode="out-in">
-		<component :is="self ? 'MkA' : 'a'" v-if="!fetching" class="link" :class="{ compact }" :[attr]="self ? url.substr(local.length) : url" rel="nofollow noopener" :target="target" :title="url">
-			<div v-if="thumbnail" class="thumbnail" :style="thumbnailStyle">
-				<button v-if="!playerEnabled && player.url" class="_button" :title="i18n.ts.enablePlayer" @click.prevent="playerEnabled = true"><i class="ph-play-circle-bold ph-lg"></i></button>
-			</div>
-			<article>
-				<header>
-					<h1 :title="title">{{ title }}</h1>
-				</header>
-				<p v-if="description" :title="description">{{ description.length > 85 ? description.slice(0, 85) + '…' : description }}</p>
-				<footer>
-					<img v-if="icon" class="icon" :src="icon"/>
-					<p :title="sitename">{{ sitename }}</p>
-				</footer>
-			</article>
-		</component>
-	</transition>
-	<div v-if="tweetId" class="expandTweet">
-		<a @click="tweetExpanded = true">
-			<i class="ph-twitter-logo-bold ph-lg"></i> {{ i18n.ts.expandTweet }}
-		</a>
+	<div v-else-if="isSpotify" class="spotify">
+		<iframe :src="'https://open.spotify.com/embed/' + spotifyType + '/' + spotifyId" width="300" height="380"
+			frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>
 	</div>
-</div>
+	<div v-else-if="tweetId && tweetExpanded" ref="twitter" class="twitter">
+		<iframe ref="tweet" scrolling="no" frameborder="no"
+			:style="{ position: 'relative', width: '100%', height: `${tweetHeight}px` }"
+			:src="`https://platform.twitter.com/embed/index.html?embedId=${embedId}&amp;hideCard=false&amp;hideThread=false&amp;lang=en&amp;theme=${$store.state.darkMode ? 'dark' : 'light'}&amp;id=${tweetId}`"></iframe>
+	</div>
+	<div v-else-if="isFLV" class="flv-player">
+		<XLive :url="props.url" class="flv-media" />
+	</div>
+	<div v-else v-size="{ max: [400, 350] }" class="mk-url-preview">
+		<transition :name="$store.state.animation ? 'zoom' : ''" mode="out-in">
+			<component :is="self ? 'MkA' : 'a'" v-if="!fetching" class="link" :class="{ compact }"
+				:[attr]="self ? url.substr(local.length) : url" rel="nofollow noopener" :target="target" :title="url">
+				<div v-if="thumbnail" class="thumbnail" :style="thumbnailStyle">
+					<button v-if="!playerEnabled && player.url" class="_button" :title="i18n.ts.enablePlayer"
+						@click.prevent="playerEnabled = true"><i class="ph-play-circle-bold ph-lg"></i></button>
+				</div>
+				<article>
+					<header>
+						<h1 :title="title">{{ title }}</h1>
+					</header>
+					<p v-if="description" :title="description">{{ description.length > 85 ? description.slice(0, 85) +
+						'…' : description }}</p>
+					<footer>
+						<img v-if="icon" class="icon" :src="icon" />
+						<p :title="sitename">{{ sitename }}</p>
+					</footer>
+				</article>
+			</component>
+		</transition>
+		<div v-if="tweetId" class="expandTweet">
+			<a @click="tweetExpanded = true">
+				<i class="ph-twitter-logo-bold ph-lg"></i> {{ i18n.ts.expandTweet }}
+			</a>
+		</div>
+	</div>
 </template>
 
 <script lang="ts" setup>
@@ -73,7 +83,7 @@ let player = $ref({
 let playerEnabled = $ref(false);
 let tweetId = $ref<string | null>(null);
 let tweetExpanded = $ref(props.detail);
-const embedId = `embed${Math.random().toString().replace(/\D/,'')}`;
+const embedId = `embed${Math.random().toString().replace(/\D/, '')}`;
 let tweetHeight = $ref(150);
 let isSpotify = $ref(false);
 let spotifyType = $ref('');
@@ -104,8 +114,8 @@ const thumbnailStyle = $computed(() => {
 const requestUrl = new URL(props.url);
 
 if (requestUrl.hostname === 'live.barkle.chat' && requestUrl.pathname.endsWith('.m3u8')) {
-  // Enable FLV player section
-  isFLV = true;
+	// Enable FLV player section
+	isFLV = true;
 
 }
 
@@ -170,25 +180,25 @@ onUnmounted(() => {
 </script>
 
 <style lang="scss" scoped>
-
 .flv-meadia {
 	display: flex;
-		justify-content: center;
-		align-items: center;
+	justify-content: center;
+	align-items: center;
 
-		font-size: 3.5em;
-		overflow: hidden;
-		background-position: center;
-		background-size: cover;
-		width: 100%;
-		height: 100%;
-		border-radius: 6px;
+	font-size: 3.5em;
+	overflow: hidden;
+	background-position: center;
+	background-size: cover;
+	width: 100%;
+	height: 100%;
+	border-radius: 6px;
 }
+
 .player {
 	position: relative;
 	width: 100%;
 
-	> button {
+	>button {
 		position: absolute;
 		top: -1.5em;
 		right: 0;
@@ -206,7 +216,7 @@ onUnmounted(() => {
 		}
 	}
 
-	> iframe {
+	>iframe {
 		height: 100%;
 		left: 0;
 		position: absolute;
@@ -217,38 +227,38 @@ onUnmounted(() => {
 
 .mk-url-preview {
 	&.max-width_400px {
-		> .link {
+		>.link {
 			font-size: 12px;
 
-			> .thumbnail {
+			>.thumbnail {
 				height: 80px;
 			}
 
-			> article {
+			>article {
 				padding: 12px;
 			}
 		}
 	}
 
 	&.max-width_350px {
-		> .link {
+		>.link {
 			font-size: 10px;
 
-			> .thumbnail {
+			>.thumbnail {
 				height: 70px;
 			}
 
-			> article {
+			>article {
 				padding: 8px;
 
-				> header {
+				>header {
 					margin-bottom: 4px;
 				}
 
-				> footer {
+				>footer {
 					margin-top: 4px;
 
-					> img {
+					>img {
 						width: 12px;
 						height: 12px;
 					}
@@ -256,22 +266,22 @@ onUnmounted(() => {
 			}
 
 			&.compact {
-				> .thumbnail {
+				>.thumbnail {
 					position: absolute;
 					width: 56px;
 					height: 100%;
 				}
 
-				> article {
+				>article {
 					left: 56px;
 					width: calc(100% - 56px);
 					padding: 4px;
 
-					> header {
+					>header {
 						margin-bottom: 2px;
 					}
 
-					> footer {
+					>footer {
 						margin-top: 2px;
 					}
 				}
@@ -279,7 +289,7 @@ onUnmounted(() => {
 		}
 	}
 
-	> .link {
+	>.link {
 		position: relative;
 		display: block;
 		font-size: 14px;
@@ -291,12 +301,12 @@ onUnmounted(() => {
 			text-decoration: none;
 			border-color: rgba(0, 0, 0, 0.2);
 
-			> article > header > h1 {
+			>article>header>h1 {
 				text-decoration: underline;
 			}
 		}
 
-		> .thumbnail {
+		>.thumbnail {
 			position: absolute;
 			width: 100px;
 			height: 100%;
@@ -306,7 +316,7 @@ onUnmounted(() => {
 			justify-content: center;
 			align-items: center;
 
-			> button {
+			>button {
 				font-size: 3.5em;
 				opacity: 0.7;
 
@@ -316,36 +326,36 @@ onUnmounted(() => {
 				}
 			}
 
-			& + article {
+			&+article {
 				left: 100px;
 				width: calc(100% - 100px);
 			}
 		}
 
-		> article {
+		>article {
 			position: relative;
 			box-sizing: border-box;
 			padding: 16px;
 
-			> header {
+			>header {
 				margin-bottom: 8px;
 
-				> h1 {
+				>h1 {
 					margin: 0;
 					font-size: 1em;
 				}
 			}
 
-			> p {
+			>p {
 				margin: 0;
 				font-size: 0.8em;
 			}
 
-			> footer {
+			>footer {
 				margin-top: 8px;
 				height: 16px;
 
-				> img {
+				>img {
 					display: inline-block;
 					width: 16px;
 					height: 16px;
@@ -353,7 +363,7 @@ onUnmounted(() => {
 					vertical-align: top;
 				}
 
-				> p {
+				>p {
 					display: inline-block;
 					margin: 0;
 					color: var(--urlPreviewInfo);
@@ -365,8 +375,11 @@ onUnmounted(() => {
 		}
 
 		&.compact {
-			> article {
-				> header h1, p, footer {
+			>article {
+
+				>header h1,
+				p,
+				footer {
 					overflow: hidden;
 					white-space: nowrap;
 					text-overflow: ellipsis;
@@ -375,15 +388,17 @@ onUnmounted(() => {
 		}
 	}
 }
+
 .apple-music {
-    width: 100%;
+	width: 100%;
 	//max-width: 300px; /* adjust as necessary */
 	//max-height: 100%;
-    height: 200px;
+	height: 200px;
 	//padding-bottom: 80%; /* for a 300x380 player, adjust as necessary */
 	position: relative;
 	margin-bottom: -35%;
-	> iframe {
+
+	>iframe {
 		//position: absolute;
 		top: 0;
 		left: 0;
@@ -392,15 +407,17 @@ onUnmounted(() => {
 		//height: 100%;
 	}
 }
+
 .spotify {
 	width: 100%;
 	//max-width: 300px; /* adjust as necessary */
 	//max-height: 100%;
-    height: 200px;
+	height: 200px;
 	//padding-bottom: 80%; /* for a 300x380 player, adjust as necessary */
 	position: relative;
 	margin-bottom: -15%;
-	> iframe {
+
+	>iframe {
 		//position: absolute;
 		top: 0;
 		left: 0;
@@ -411,10 +428,9 @@ onUnmounted(() => {
 }
 
 .hls-player {
-  video {
-    width: 100%;
-    height: auto;
-  }
+	video {
+		width: 100%;
+		height: auto;
+	}
 }
-
 </style>
