@@ -121,12 +121,12 @@ export default define(meta, paramDef, async (ps, user) => {
         choice: ps.choice,
     }).then(x => PollVotes.findOneByOrFail(x.identifiers[0]));
 
-    // Increment votes count
-    const index = ps.choice + 1; // In SQL, array index is 1 based
-    await Polls.query(
-        'UPDATE poll SET votes[$1] = votes[$1] + 1 WHERE "noteId" = $2',
-        [index, poll.noteId]
-    );
+    // Increment votes count using TypeORM's save method - safe from SQL injection
+    const index = ps.choice;
+    const updatedPoll = await Polls.findOneByOrFail({ noteId: poll.noteId });
+    if (!updatedPoll.votes) updatedPoll.votes = [];
+    updatedPoll.votes[index] = (updatedPoll.votes[index] || 0) + 1;
+    await Polls.save(updatedPoll);
 
     publishNoteStream(note.id, 'pollVoted', {
         choice: ps.choice,
