@@ -1,6 +1,7 @@
 import { In } from 'typeorm';
 import { Notes } from '@/models/index.js';
 import config from '@/config/index.js';
+import { sqlLikeEscape } from '@/misc/sql-like-escape.js';
 import es from '../../../../db/elasticsearch.js';
 import define from '../../define.js';
 import { makePaginationQuery } from '../../common/make-pagination-query.js';
@@ -58,7 +59,7 @@ export default define(meta, paramDef, async (ps, me) => {
 		}
 
 		query
-			.andWhere('note.text ILIKE :q', { q: `%${ps.query}%` })
+			.andWhere('note.text ILIKE :q', { q: `%${sqlLikeEscape(ps.query)}%` })
 			.innerJoinAndSelect('note.user', 'user')
 			.leftJoinAndSelect('user.avatar', 'avatar')
 			.leftJoinAndSelect('user.banner', 'banner')

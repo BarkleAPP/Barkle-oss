@@ -96,9 +96,10 @@ export async function readGroupMessagingMessage(
 		// Update document
 		await MessagingMessages.createQueryBuilder().update()
 			.set({
-				reads: (() => `array_append("reads", '${joining.userId}')`) as any,
+				reads: (() => `array_append("reads", :userId)`) as any,
 			})
 			.where('id = :id', { id: message.id })
+			.setParameter('userId', joining.userId)
 			.execute();
 
 		reads.push(message.id);

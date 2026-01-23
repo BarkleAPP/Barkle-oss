@@ -37,6 +37,7 @@ export async function injectFeatured(timeline: Note[], user?: User | null) {
 			.where('reaction.userId = :userId', { userId: user.id });
 
 		query.andWhere(`note.id NOT IN (${reactionQuery.getQuery()})`);
+		query.setParameters(reactionQuery.getParameters());
 	}
 
 	const notes = await query

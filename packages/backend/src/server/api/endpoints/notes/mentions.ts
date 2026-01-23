@@ -42,9 +42,10 @@ export default define(meta, paramDef, async (ps, user) => {
 		.where('following.followerId = :followerId', { followerId: user.id });
 
 	const query = makePaginationQuery(Notes.createQueryBuilder('note'), ps.sinceId, ps.untilId)
-		.andWhere(new Brackets(qb => { qb
-			.where(`'{"${user.id}"}' <@ note.mentions`)
-			.orWhere(`'{"${user.id}"}' <@ note.visibleUserIds`);
+		.andWhere(new Brackets(qb => {
+			qb
+				.where(':userId = ANY(note.mentions)', { userId: user.id })
+			.orWhere(':userId = ANY(note.visibleUserIds)', { userId: user.id });
 		}))
 		.innerJoinAndSelect('note.user', 'user')
 		.leftJoinAndSelect('user.avatar', 'avatar')
@@ -68,7 +69,7 @@ export default define(meta, paramDef, async (ps, user) => {
 	}
 
 	if (ps.following) {
-		query.andWhere(`((note.userId IN (${ followingQuery.getQuery() })) OR (note.userId = :meId))`, { meId: user.id });
+		query.andWhere(`((note.userId IN (${followingQuery.getQuery()})) OR (note.userId = :meId))`, { meId: user.id });
 		query.setParameters(followingQuery.getParameters());
 	}
 

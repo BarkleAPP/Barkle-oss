@@ -15,6 +15,10 @@ import cors from '@koa/cors';
 
 /**
  * Get CORS origin handler based on configuration
+ * Note: @koa/cors expects the origin function to return:
+ * - The origin string to allow (sets Access-Control-Allow-Origin to that value)
+ * - false to skip CORS headers (request proceeds without CORS headers)
+ * - '*' to allow all origins
  */
 function getOriginHandler(config: Config) {
 	const allowedOrigins = config.cors?.allowedOrigins;
@@ -30,17 +34,20 @@ function getOriginHandler(config: Config) {
 
 	// If specific origins are configured, use them
 	if (allowedOrigins && allowedOrigins.length > 0) {
-		return (origin: string | undefined) => {
+		return (ctx: any) => {
+			const origin = ctx.get('Origin');
+
 			// CRITICAL: Allow requests with no origin header
 			// This is essential for:
 			// - Native mobile apps (iOS/Android)
 			// - Desktop applications
 			// - Command-line tools (curl, etc.)
 			// - Server-to-server requests
-			if (!origin) return true;
+			// Return the instance URL for requests without Origin header
+			if (!origin) return config.url;
 
 			// Check if origin is in allowed list
-			return allowedOrigins.some(allowed => {
+			const isAllowed = allowedOrigins.some((allowed: string) => {
 				// Exact match
 				if (allowed === origin) return true;
 
@@ -53,22 +60,28 @@ function getOriginHandler(config: Config) {
 
 				return false;
 			});
+
+			// Return the origin if allowed, false otherwise
+			return isAllowed ? origin : false;
 		};
 	}
 
 	// DEFAULT SECURE BEHAVIOR:
 	// Allow same-origin requests, subdomains, related domains, Capacitor apps, plus requests with no origin
-	return (origin: string | undefined) => {
-		// Allow requests with no origin (mobile apps, curl, etc.)
-		if (!origin) return true;
+	return (ctx: any) => {
+		const origin = ctx.get('Origin');
 
-		if (isCapacitorOrigin(origin)) return true;
+		// Allow requests with no origin (mobile apps, curl, etc.)
+		// Return the instance URL for these requests
+		if (!origin) return config.url;
+
+		if (isCapacitorOrigin(origin)) return origin;
 
 		// Allow localhost for development
-		if (isLocalhostOrigin(origin)) return true;
+		if (isLocalhostOrigin(origin)) return origin;
 
 		// Allow same-origin requests
-		if (origin === config.url) return true;
+		if (origin === config.url) return origin;
 
 		// Allow subdomains of the instance
 		try {
@@ -77,15 +90,15 @@ function getOriginHandler(config: Config) {
 
 			// Allow same domain with different subdomains
 			// e.g., beta.barkle.chat can access barkle.chat API
-			if (instanceUrl.hostname === originUrl.hostname) return true;
+			if (instanceUrl.hostname === originUrl.hostname) return origin;
 
 			// Allow subdomains of the main domain
 			// e.g., beta.barkle.chat can access api.barkle.chat
 			const mainDomain = getMainDomain(instanceUrl.hostname);
 			const originDomain = getMainDomain(originUrl.hostname);
-			if (mainDomain && mainDomain === originDomain) return true;
+			if (mainDomain && mainDomain === originDomain) return origin;
 
-		} catch (e) {
+		} catch {
 			// Invalid URLs, deny
 			return false;
 		}
@@ -155,19 +168,20 @@ function getMainDomain(hostname: string): string | null {
  * Create CORS middleware with secure defaults that support mobile apps and embedding
  */
 export function createCorsMiddleware(config: Config) {
-	// TEMPORARILY PERMISSIVE: Allow all origins while debugging 500 errors
-	// TODO: Re-enable origin validation when API errors are fixed
+	const origin = getOriginHandler(config);
+
 	return cors({
-		origin: '*',  // Allow all origins temporarily
+		origin,
 
 		// Allow credentials (cookies, authorization headers)
-		credentials: false, // Must be false when origin is '*'
+		// This is safe because we validate origins above
+		credentials: config.cors?.allowCredentials ?? true,
 
 		// Allowed methods - include all common REST methods
-		allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
+		allowMethods: config.cors?.allowedMethods ?? ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
 
 		// Allowed headers - include common headers
-		allowHeaders: [
+		allowHeaders: config.cors?.allowedHeaders ?? [
 			'Content-Type',
 			'Authorization',
 			'X-Requested-With',
@@ -178,14 +192,16 @@ export function createCorsMiddleware(config: Config) {
 		],
 
 		// Expose headers that browsers can access
-		exposeHeaders: [
+		// This allows frontend apps to read these headers
+		exposeHeaders: config.cors?.exposeHeaders ?? [
 			'Content-Length',
 			'Content-Type',
 			'Content-Range',
 		],
 
 		// Max age for preflight requests (24 hours)
-		maxAge: 86400,
+		// This reduces the number of preflight requests
+		maxAge: config.cors?.maxAge ?? 86400,
 	});
 }
 

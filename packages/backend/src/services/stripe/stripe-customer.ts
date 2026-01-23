@@ -2,6 +2,7 @@ import Stripe from 'stripe';
 import { Users } from '@/models/index.js';
 import { User } from '@/models/entities/user.js';
 import Logger from '@/services/logger.js';
+import { sqlLikeEscape } from '@/misc/sql-like-escape.js';
 import { StripeCoreService, StripeApiError } from './stripe-core.js';
 
 const logger = new Logger('stripe-customer');
@@ -206,8 +207,8 @@ export class StripeCustomerService {
 
 		// If not found, search with LIKE for array-stored IDs
 		const users = await Users.createQueryBuilder('user')
-			.where('user.stripe_user::text LIKE :customerId', { 
-				customerId: `%${customerId}%` 
+			.where('user.stripe_user::text LIKE :customerId', {
+				customerId: `%${sqlLikeEscape(customerId)}%`
 			})
 			.getMany();
 

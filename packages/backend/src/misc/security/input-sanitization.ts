@@ -74,7 +74,7 @@ export function sanitizeUsername(username: string): string {
  * - Basic format validation
  */
 export function sanitizeEmail(email: string): string {
-	const sanitized = email.toLowerCase().trim();
+	let sanitized = email.toLowerCase().trim();
 
 	// Basic email validation
 	const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

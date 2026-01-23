@@ -1,5 +1,6 @@
 import Stripe from 'stripe';
 import { StripeEvents, Users, GiftedSubscriptions } from '@/models/index.js';
+import { sqlLikeEscape } from '@/misc/sql-like-escape.js';
 import Logger from '@/services/logger.js';
 import { StripeCoreService, StripeConfigError } from './stripe-core.js';
 import { StripeCustomerService } from './stripe-customer.js';
@@ -411,7 +412,7 @@ export class StripeWebhookService {
 		session: Stripe.Checkout.Session
 	): Promise<string | null> {
 		logger.info(`📋 WEBHOOK: Checkout session expired: ${session.id}`);
-		
+
 		// Could notify user or clean up any pending state
 		return null;
 	}
@@ -471,7 +472,7 @@ export class StripeWebhookService {
 		}
 
 		if (options.type) {
-			queryBuilder.andWhere('event.type LIKE :type', { type: `%${options.type}%` });
+			queryBuilder.andWhere('event.type LIKE :type', { type: `%${sqlLikeEscape(options.type)}%` });
 		}
 
 		queryBuilder.orderBy('event.processedAt', 'DESC');

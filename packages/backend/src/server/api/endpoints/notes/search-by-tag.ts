@@ -1,6 +1,7 @@
 import { Brackets } from 'typeorm';
 import { Notes } from '@/models/index.js';
 import { normalizeForSearch } from '@/misc/normalize-for-search.js';
+import { safeForSql } from '@/misc/safe-for-sql.js';
 import define from '../../define.js';
 import { makePaginationQuery } from '../../common/make-pagination-query.js';
 import { generateMutedUserQuery } from '../../common/generate-muted-user-query.js';
@@ -84,12 +85,24 @@ export default define(meta, paramDef, async (ps, me) => {
 	if (me) generateBlockedUserQuery(query, me);
 
 	if (ps.tag) {
+		const normalizedTag = normalizeForSearch(ps.tag);
+		if (!safeForSql(normalizedTag)) {
+			return [];
+		}
 		query.andWhere(
 			new Brackets(qb => {
-				qb.where('note.tags @> :tag', { tag: [normalizeForSearch(ps.tag)] });
+				qb.where('note.tags @> :tag', { tag: [normalizedTag] });
 			})
 		);
 	} else {
+		// Validate all tags before building query
+		for (const tags of ps.query!) {
+			for (const tag of tags) {
+				if (!safeForSql(normalizeForSearch(tag))) {
+					return [];
+				}
+			}
+		}
 		query.andWhere(new Brackets(qb => {
 			for (const tags of ps.query!) {
 				qb.orWhere(new Brackets(qb2 => {

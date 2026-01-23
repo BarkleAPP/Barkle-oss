@@ -1,5 +1,6 @@
 import define from '../../define.js';
 import { DriveFiles } from '@/models/index.js';
+import { sqlLikeEscape } from '@/misc/sql-like-escape.js';
 import { makePaginationQuery } from '../../common/make-pagination-query.js';
 
 export const meta = {
@@ -37,7 +38,7 @@ export default define(meta, paramDef, async (ps, user) => {
 
 	if (ps.type) {
 		if (ps.type.endsWith('/*')) {
-			query.andWhere('file.type like :type', { type: ps.type.replace('/*', '/') + '%' });
+			query.andWhere('file.type like :type', { type: sqlLikeEscape(ps.type.replace('/*', '/')) + '%' });
 		} else {
 			query.andWhere('file.type = :type', { type: ps.type });
 		}

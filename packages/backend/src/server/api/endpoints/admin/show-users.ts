@@ -1,4 +1,5 @@
 import { Users } from '@/models/index.js';
+import { sqlLikeEscape } from '@/misc/sql-like-escape.js';
 import define from '../../define.js';
 
 export const meta = {
@@ -21,18 +22,18 @@ export const paramDef = {
   properties: {
     limit: { type: 'integer', minimum: 1, maximum: 100, default: 10 },
     offset: { type: 'integer', default: 0 },
-    sort: { 
-      type: 'string', 
+    sort: {
+      type: 'string',
       enum: [
-        '+follower', '-follower', 
-        '+createdAt', '-createdAt', 
+        '+follower', '-follower',
+        '+createdAt', '-createdAt',
         '+updatedAt', '-updatedAt',
         '+isTranslator', '-isTranslator',
         '+isPlus', '-isPlus',
         '+isVerified', '-isVerified',
         '+isSilenced', '-isSilenced',
         '+isSuspended', '-isSuspended'
-      ] 
+      ]
     },
     state: { type: 'string', enum: ['all', 'alive', 'available', 'admin', 'moderator', 'adminOrModerator', 'silenced', 'suspended'], default: 'all' },
     origin: { type: 'string', enum: ['combined', 'local', 'remote'], default: 'combined' },
@@ -66,7 +67,7 @@ export default define(meta, paramDef, async (ps, me) => {
   }
 
   if (ps.username) {
-    query.andWhere('user.usernameLower like :username', { username: ps.username.toLowerCase() + '%' });
+    query.andWhere('user.usernameLower like :username', { username: sqlLikeEscape(ps.username.toLowerCase()) + '%' });
   }
 
   if (ps.hostname) {

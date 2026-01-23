@@ -143,7 +143,7 @@ async function fallbackTrendingLogic() {
 		.andWhere(new Brackets(qb => {
 			qb
 				.where(`note.visibility = 'public'`)
-			.orWhere(`note.visibility = 'home'`);
+				.orWhere(`note.visibility = 'home'`);
 		}))
 		.andWhere(`note.tags != '{}'`)
 		.select(['note.tags', 'note.userId'])
@@ -187,27 +187,31 @@ async function fallbackTrendingLogic() {
 	const interval = 1000 * 60 * 10;
 
 	for (let i = 0; i < range; i++) {
-		countPromises.push(Promise.all(hots.map(tag => Notes.createQueryBuilder('note')
-			.select('count(distinct note.userId)')
-			.where(`'{"${safeForSql(tag) ? tag : 'aichan_kawaii'}"}' <@ note.tags`)
-			.andWhere('note.createdAt < :lt', { lt: new Date(now.getTime() - (interval * i)) })
-			.andWhere('note.createdAt > :gt', { gt: new Date(now.getTime() - (interval * (i + 1))) })
-			.cache(60000)
-			.getRawOne()
-			.then(x => parseInt(x.count, 10))
-		)));
+		countPromises.push(Promise.all(hots.map(tag => {
+			if (!safeForSql(tag)) return Promise.resolve(0);
+			return Notes.createQueryBuilder('note')
+				.select('count(distinct note.userId)')
+				.where('note.tags @> :tag', { tag: [tag] })
+				.andWhere('note.createdAt < :lt', { lt: new Date(now.getTime() - (interval * i)) })
+				.andWhere('note.createdAt > :gt', { gt: new Date(now.getTime() - (interval * (i + 1))) })
+				.cache(60000)
+				.getRawOne()
+				.then(x => parseInt(x.count, 10));
+		})));
 	}
 
 	const countsLog = await Promise.all(countPromises);
 
-	const totalCounts = await Promise.all(hots.map(tag => Notes.createQueryBuilder('note')
-		.select('count(distinct note.userId)')
-		.where(`'{"${safeForSql(tag) ? tag : 'aichan_kawaii'}"}' <@ note.tags`)
-		.andWhere('note.createdAt > :gt', { gt: new Date(now.getTime() - rangeA) })
-		.cache(60000 * 60)
-		.getRawOne()
-		.then(x => parseInt(x.count, 10))
-	));
+	const totalCounts = await Promise.all(hots.map(tag => {
+		if (!safeForSql(tag)) return Promise.resolve(0);
+		return Notes.createQueryBuilder('note')
+			.select('count(distinct note.userId)')
+			.where('note.tags @> :tag', { tag: [tag] })
+			.andWhere('note.createdAt > :gt', { gt: new Date(now.getTime() - rangeA) })
+			.cache(60000 * 60)
+			.getRawOne()
+			.then(x => parseInt(x.count, 10));
+	}));
 
 	return hots.map((tag, i) => ({
 		tag,

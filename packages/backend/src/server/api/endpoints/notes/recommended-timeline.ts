@@ -122,7 +122,7 @@ export default define(meta, paramDef, async (ps, user) => {
 	//#region Construct query for instance-based recommendations
 	const query = makePaginationQuery(Notes.createQueryBuilder('note'),
 		ps.sinceId, ps.untilId, ps.sinceDate, ps.untilDate)
-		.andWhere(`(note.userHost = ANY ('{"${m.recommendedInstances.join('","')}"}'))`)
+		.andWhere('note.userHost = ANY(:recommendedInstances)', { recommendedInstances: m.recommendedInstances })
 		.andWhere('(note.visibility = \'public\')')
 		.innerJoinAndSelect('note.user', 'user')
 		.leftJoinAndSelect('user.avatar', 'avatar')

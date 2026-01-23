@@ -2,6 +2,7 @@ import { Brackets } from 'typeorm';
 import { Followings, Users } from '@/models/index.js';
 import { USER_ACTIVE_THRESHOLD } from '@/const.js';
 import { User } from '@/models/entities/user.js';
+import { sqlLikeEscape } from '@/misc/sql-like-escape.js';
 import define from '../../define.js';
 
 export const meta = {
@@ -45,10 +46,10 @@ export default define(meta, paramDef, async (ps, me) => {
 	if (ps.host) {
 		const q = Users.createQueryBuilder('user')
 			.where('user.isSuspended = FALSE')
-			.andWhere('user.host LIKE :host', { host: ps.host.toLowerCase() + '%' });
+			.andWhere('user.host LIKE :host', { host: sqlLikeEscape(ps.host.toLowerCase()) + '%' });
 
 		if (ps.username) {
-			q.andWhere('user.usernameLower LIKE :username', { username: ps.username.toLowerCase() + '%' });
+			q.andWhere('user.usernameLower LIKE :username', { username: sqlLikeEscape(ps.username.toLowerCase()) + '%' });
 		}
 
 		q.andWhere('user.updatedAt IS NOT NULL');
@@ -66,12 +67,13 @@ export default define(meta, paramDef, async (ps, me) => {
 				.where('following.followerId = :followerId', { followerId: me.id });
 
 			const query = Users.createQueryBuilder('user')
-				.where(`user.id IN (${ followingQuery.getQuery() })`)
+				.where(`user.id IN (${followingQuery.getQuery()})`)
 				.andWhere('user.id != :meId', { meId: me.id })
 				.andWhere('user.isSuspended = FALSE')
-				.andWhere('user.usernameLower LIKE :username', { username: ps.username.toLowerCase() + '%' })
-				.andWhere(new Brackets(qb => { qb
-					.where('user.updatedAt IS NULL')
+				.andWhere('user.usernameLower LIKE :username', { username: sqlLikeEscape(ps.username.toLowerCase()) + '%' })
+				.andWhere(new Brackets(qb => {
+					qb
+						.where('user.updatedAt IS NULL')
 					.orWhere('user.updatedAt > :activeThreshold', { activeThreshold: activeThreshold });
 				}));
 
@@ -84,10 +86,10 @@ export default define(meta, paramDef, async (ps, me) => {
 
 			if (users.length < ps.limit) {
 				const otherQuery = await Users.createQueryBuilder('user')
-					.where(`user.id NOT IN (${ followingQuery.getQuery() })`)
+					.where(`user.id NOT IN (${followingQuery.getQuery()})`)
 					.andWhere('user.id != :meId', { meId: me.id })
 					.andWhere('user.isSuspended = FALSE')
-					.andWhere('user.usernameLower LIKE :username', { username: ps.username.toLowerCase() + '%' })
+					.andWhere('user.usernameLower LIKE :username', { username: sqlLikeEscape(ps.username.toLowerCase()) + '%' })
 					.andWhere('user.updatedAt IS NOT NULL');
 
 				otherQuery.setParameters(followingQuery.getParameters());
@@ -102,7 +104,7 @@ export default define(meta, paramDef, async (ps, me) => {
 		} else {
 			users = await Users.createQueryBuilder('user')
 				.where('user.isSuspended = FALSE')
-				.andWhere('user.usernameLower LIKE :username', { username: ps.username.toLowerCase() + '%' })
+				.andWhere('user.usernameLower LIKE :username', { username: sqlLikeEscape(ps.username.toLowerCase()) + '%' })
 				.andWhere('user.updatedAt IS NOT NULL')
 				.orderBy('user.updatedAt', 'DESC')
 				.take(ps.limit - users.length)

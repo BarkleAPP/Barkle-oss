@@ -29,11 +29,12 @@ export default define(meta, paramDef, async (ps, user) => {
 
 	await Promise.all(joinings.map(j => MessagingMessages.createQueryBuilder().update()
 		.set({
-			reads: (() => `array_append("reads", '${user.id}')`) as any,
+			reads: (() => `array_append("reads", :userId)`) as any,
 		})
 		.where(`groupId = :groupId`, { groupId: j.userGroupId })
 		.andWhere('userId != :userId', { userId: user.id })
 		.andWhere('NOT (:userId = ANY(reads))', { userId: user.id })
+		.setParameter('userId', user.id)
 		.execute()));
 
 	publishMainStream(user.id, 'readAllMessagingMessages');

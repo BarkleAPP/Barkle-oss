@@ -1,6 +1,7 @@
 import define from '../../define.js';
 import { Users } from '@/models/index.js';
 import { normalizeForSearch } from '@/misc/normalize-for-search.js';
+import { safeForSql } from '@/misc/safe-for-sql.js';
 
 export const meta = {
 	requireCredential: false,
@@ -32,8 +33,12 @@ export const paramDef = {
 } as const;
 
 export default define(meta, paramDef, async (ps, me) => {
+	const normalizedTag = normalizeForSearch(ps.tag);
+	if (!safeForSql(normalizedTag)) {
+		return [];
+	}
 	const query = Users.createQueryBuilder('user')
-		.where(':tag = ANY(user.tags)', { tag: normalizeForSearch(ps.tag) });
+		.where(':tag = ANY(user.tags)', { tag: normalizedTag });
 
 	const recent = new Date(Date.now() - (1000 * 60 * 60 * 24 * 5));
 

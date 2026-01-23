@@ -111,7 +111,7 @@ export default async (endpoint: string, user: CacheableLocalUser | null | undefi
 				try {
 					data[k] = JSON.parse(data[k]);
 				} catch (e) {
-					throw new ApiError({
+					throw	new ApiError({
 						message: 'Invalid param.',
 						code: 'INVALID_PARAM',
 						id: '0b5f1631-7c1a-41a6-b399-cce335f34d85',
@@ -137,7 +137,7 @@ export default async (endpoint: string, user: CacheableLocalUser | null | undefi
 				httpStatusCode: 500,
 			});
 		}
-
+		
 		// For elevated endpoints, pass the full headers
 		return await ep.exec(data, user, token, ctx.file, ctx.ip, headers).catch((e: Error) => {
 			handleError(e, ep, data);

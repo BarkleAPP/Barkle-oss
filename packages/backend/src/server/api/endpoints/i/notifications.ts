@@ -110,6 +110,7 @@ export default define(meta, paramDef, async (ps, user) => {
 		.where(`notification.notifierId NOT IN (${ suspendedQuery.getQuery() })`)
 		.orWhere('notification.notifierId IS NULL');
 	}));
+	query.setParameters(suspendedQuery.getParameters());
 
 	if (ps.following) {
 		query.andWhere(`((notification.notifierId IN (${ followingQuery.getQuery() })) OR (notification.notifierId = :meId))`, { meId: user.id });
