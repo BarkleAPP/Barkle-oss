@@ -24,7 +24,6 @@ export default async (user: { id: User['id'] }, note: Note) => {
     }
 
     // Decrement reactions count
-    // Decrement reactions count
     await Notes.createQueryBuilder().update()
         .set({
             reactions: () => `jsonb_set("reactions", ARRAY[:reaction]::text[], (COALESCE("reactions"->>:reaction, '0')::int - 1)::text::jsonb)`,

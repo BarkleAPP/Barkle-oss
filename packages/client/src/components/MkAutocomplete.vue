@@ -1,36 +1,39 @@
 <template>
-<div ref="rootEl" class="swhvrteh _popup _shadow" :style="{ zIndex }" @contextmenu.prevent="() => {}">
-	<ol v-if="type === 'user'" ref="suggests" class="users">
-		<li v-for="user in users" tabindex="-1" class="user" @click="complete(type, user)" @keydown="onKeydown">
-			<img class="avatar" :src="user.avatarUrl"/>
-			<span class="name">
-				<MkUserName :key="user.id" :user="user"/>
-			</span>
-			<span class="username">@{{ acct(user) }}</span>
-		</li>
-		<li tabindex="-1" class="choose" @click="chooseUser()" @keydown="onKeydown">{{ i18n.ts.selectUser }}</li>
-	</ol>
-	<ol v-else-if="hashtags.length > 0" ref="suggests" class="hashtags">
-		<li v-for="hashtag in hashtags" tabindex="-1" @click="complete(type, hashtag)" @keydown="onKeydown">
-			<span class="name">{{ hashtag }}</span>
-		</li>
-	</ol>
-	<ol v-else-if="emojis.length > 0" ref="suggests" class="emojis">
-		<li v-for="emoji in emojis" tabindex="-1" @click="complete(type, emoji.emoji)" @keydown="onKeydown">
-			<span v-if="emoji.isCustomEmoji" class="emoji"><img :src="defaultStore.state.disableShowingAnimatedImages ? getStaticImageUrl(emoji.url) : emoji.url" :alt="emoji.emoji"/></span>
-			<span v-else-if="!defaultStore.state.useOsNativeEmojis" class="emoji"><img :src="emoji.url" :alt="emoji.emoji"/></span>
-			<span v-else class="emoji">{{ emoji.emoji }}</span>
-			<!-- eslint-disable-next-line vue/no-v-html -->
-			<span class="name" v-html="emoji.name.replace(q, `<b>${q}</b>`)"></span>
-			<span v-if="emoji.aliasOf" class="alias">({{ emoji.aliasOf }})</span>
-		</li>
-	</ol>
-	<ol v-else-if="mfmTags.length > 0" ref="suggests" class="mfmTags">
-		<li v-for="tag in mfmTags" tabindex="-1" @click="complete(type, tag)" @keydown="onKeydown">
-			<span class="tag">{{ tag }}</span>
-		</li>
-	</ol>
-</div>
+	<div ref="rootEl" class="swhvrteh _popup _shadow" :style="{ zIndex }" @contextmenu.prevent="() => { }">
+		<ol v-if="type === 'user'" ref="suggests" class="users">
+			<li v-for="user in users" tabindex="-1" class="user" @click="complete(type, user)" @keydown="onKeydown">
+				<img class="avatar" :src="user.avatarUrl" />
+				<span class="name">
+					<MkUserName :key="user.id" :user="user" />
+				</span>
+				<span class="username">@{{ acct(user) }}</span>
+			</li>
+			<li tabindex="-1" class="choose" @click="chooseUser()" @keydown="onKeydown">{{ i18n.ts.selectUser }}</li>
+		</ol>
+		<ol v-else-if="hashtags.length > 0" ref="suggests" class="hashtags">
+			<li v-for="hashtag in hashtags" tabindex="-1" @click="complete(type, hashtag)" @keydown="onKeydown">
+				<span class="name">{{ hashtag }}</span>
+			</li>
+		</ol>
+		<ol v-else-if="emojis.length > 0" ref="suggests" class="emojis">
+			<li v-for="emoji in emojis" tabindex="-1" @click="complete(type, emoji.emoji)" @keydown="onKeydown">
+				<span v-if="emoji.isCustomEmoji" class="emoji"><img
+						:src="defaultStore.state.disableShowingAnimatedImages ? getStaticImageUrl(emoji.url) : emoji.url"
+						:alt="emoji.emoji" /></span>
+				<span v-else-if="!defaultStore.state.useOsNativeEmojis" class="emoji"><img :src="emoji.url"
+						:alt="emoji.emoji" /></span>
+				<span v-else class="emoji">{{ emoji.emoji }}</span>
+				<!-- eslint-disable-next-line vue/no-v-html -->
+				<span class="name" v-html="highlightEmojiName(emoji.name)"></span>
+				<span v-if="emoji.aliasOf" class="alias">({{ emoji.aliasOf }})</span>
+			</li>
+		</ol>
+		<ol v-else-if="mfmTags.length > 0" ref="suggests" class="mfmTags">
+			<li v-for="tag in mfmTags" tabindex="-1" @click="complete(type, tag)" @keydown="onKeydown">
+				<span class="tag">{{ tag }}</span>
+			</li>
+		</ol>
+	</div>
 </template>
 
 <script lang="ts">
@@ -141,6 +144,40 @@ const items = ref<Element[] | HTMLCollection>([]);
 const mfmTags = ref<string[]>([]);
 const select = ref(-1);
 const zIndex = os.claimZIndex('high');
+
+/**
+ * Escape HTML special characters to prevent XSS
+ */
+function escapeHtml(text: string): string {
+	return text
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&#x27;');
+}
+
+/**
+ * Safely highlight emoji name by escaping both the name and query,
+ * then inserting safe <b> tags around the matched substring
+ */
+function highlightEmojiName(name: string): string {
+	const escapedName = escapeHtml(name);
+	const q = props.q ?? '';
+	if (!q) return escapedName;
+
+	const escapedQuery = escapeHtml(q);
+	// Find the position in the escaped string where the escaped query appears
+	const index = escapedName.toLowerCase().indexOf(escapedQuery.toLowerCase());
+	if (index === -1) return escapedName;
+
+	// Preserve original casing from the escaped name
+	const before = escapedName.substring(0, index);
+	const match = escapedName.substring(index, index + escapedQuery.length);
+	const after = escapedName.substring(index + escapedQuery.length);
+
+	return `${before}<b>${match}</b>${after}`;
+}
 
 function complete(type: string, value: any) {
 	emit('done', { type, value });
@@ -382,7 +419,7 @@ onBeforeUnmount(() => {
 	overflow: hidden;
 	transition: top 0.1s ease, left 0.1s ease;
 
-	> ol {
+	>ol {
 		display: block;
 		margin: 0;
 		padding: 4px 0;
@@ -391,7 +428,7 @@ onBeforeUnmount(() => {
 		overflow: auto;
 		list-style: none;
 
-		> li {
+		>li {
 			display: flex;
 			align-items: center;
 			padding: 4px 12px;
@@ -400,7 +437,8 @@ onBeforeUnmount(() => {
 			font-size: 0.9em;
 			cursor: default;
 
-			&, * {
+			&,
+			* {
 				user-select: none;
 			}
 
@@ -416,7 +454,8 @@ onBeforeUnmount(() => {
 			&[data-selected='true'] {
 				background: var(--accent);
 
-				&, * {
+				&,
+				* {
 					color: #fff !important;
 				}
 			}
@@ -424,14 +463,15 @@ onBeforeUnmount(() => {
 			&:active {
 				background: var(--accentDarken);
 
-				&, * {
+				&,
+				* {
 					color: #fff !important;
 				}
 			}
 		}
 	}
 
-	> .users > li {
+	>.users>li {
 
 		.avatar {
 			min-width: 28px;
@@ -447,14 +487,14 @@ onBeforeUnmount(() => {
 		}
 	}
 
-	> .emojis > li {
+	>.emojis>li {
 
 		.emoji {
 			display: inline-block;
 			margin: 0 4px 0 0;
 			width: 24px;
 
-			> img {
+			>img {
 				width: 24px;
 				vertical-align: bottom;
 			}
@@ -465,10 +505,9 @@ onBeforeUnmount(() => {
 		}
 	}
 
-	> .mfmTags > li {
+	>.mfmTags>li {
 
-		.name {
-		}
+		.name {}
 	}
 }
 </style>
