@@ -1,10 +1,17 @@
 import { IsNull } from 'typeorm';
 import { Users } from '@/models/index.js';
 import define from '../../define.js';
+import { MINUTE } from '@/const.js';
 
 export const meta = {
   tags: ['users'],
   requireCredential: false,
+
+  limit: {
+    duration: MINUTE,
+    max: 10,
+  },
+
   res: {
     type: 'object',
     properties: {
@@ -25,10 +32,8 @@ export const paramDef = {
 } as const;
 
 export default define(meta, paramDef, async (ps) => {
-  // Convert the input username to lowercase
   const lowercaseUsername = ps.username.toLowerCase();
 
-  // Check if the username exists in the Users table
   const exist = await Users.countBy({
     host: IsNull(),
     usernameLower: lowercaseUsername,
