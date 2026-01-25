@@ -2,7 +2,7 @@
  * Web Client Server
  */
 
-import { dirname } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
@@ -32,10 +32,19 @@ import { MINUTE, DAY, YEAR } from '@/const.js';
 const _filename = fileURLToPath(import.meta.url);
 const _dirname = dirname(_filename);
 
-const staticAssets = `${_dirname}/../../../assets/`;
-const clientAssets = `${_dirname}/../../../../client/assets/`;
-const assets = `${_dirname}/../../../../../built/_client_dist_/`;
-const swAssets = `${_dirname}/../../../../../built/_sw_dist_/`;
+const staticAssets = resolve(`${_dirname}/../../../assets/`);
+const clientAssets = resolve(`${_dirname}/../../../../client/assets/`);
+const assets = resolve(`${_dirname}/../../../../../built/_client_dist_/`);
+const swAssets = resolve(`${_dirname}/../../../../../built/_sw_dist_/`);
+
+function isPathSafe(filePath: string, baseDir: string): boolean {
+	if (!filePath || typeof filePath !== 'string') return false;
+	if (filePath.includes('\0')) return false;
+	if (filePath.includes('..')) return false;
+
+	const resolvedPath = resolve(baseDir, filePath);
+	return resolvedPath.startsWith(baseDir);
+}
 
 // Init app
 const app = new Koa();
@@ -91,7 +100,7 @@ app.use(async (ctx, next) => {
 	// Generate CSP nonce for this request
 	const nonce = randomBytes(16).toString('base64');
 	ctx.state.cspNonce = nonce;
-	
+
 	// IFrameの中に入れられないようにする
 	ctx.set('X-Frame-Options', 'DENY');
 	// Set relaxed CSP since Nginx handles security - allow fonts and analytics to function
@@ -106,22 +115,30 @@ const router = new Router();
 
 router.get('/static-assets/(.*)', async ctx => {
 	const filePath = ctx.path.replace('/static-assets/', '');
-	
+
+	if (!isPathSafe(filePath, staticAssets)) {
+		ctx.status = 403;
+		ctx.body = 'Forbidden';
+		return;
+	}
+
 	// Add WebP support for images
 	if (filePath.match(/\.(png|jpg|jpeg)$/i) && ctx.headers.accept?.includes('image/webp')) {
 		const webpPath = filePath.replace(/\.(png|jpg|jpeg)$/i, '.webp');
-		try {
-			await send(ctx as any, webpPath, {
-				root: staticAssets,
-				maxage: 30 * DAY,
-				immutable: true,
-			});
-			return;
-		} catch (e) {
-			// Fall back to original format if WebP doesn't exist
+		if (isPathSafe(webpPath, staticAssets)) {
+			try {
+				await send(ctx as any, webpPath, {
+					root: staticAssets,
+					maxage: 30 * DAY,
+					immutable: true,
+				});
+				return;
+			} catch (e) {
+				// Fall back to original format if WebP doesn't exist
+			}
 		}
 	}
-	
+
 	await send(ctx as any, filePath, {
 		root: staticAssets,
 		maxage: 30 * DAY, // Increased from 7 days to 30 days
@@ -130,7 +147,15 @@ router.get('/static-assets/(.*)', async ctx => {
 });
 
 router.get('/client-assets/(.*)', async ctx => {
-	await send(ctx as any, ctx.path.replace('/client-assets/', ''), {
+	const filePath = ctx.path.replace('/client-assets/', '');
+
+	if (!isPathSafe(filePath, clientAssets)) {
+		ctx.status = 403;
+		ctx.body = 'Forbidden';
+		return;
+	}
+
+	await send(ctx as any, filePath, {
 		root: clientAssets,
 		maxage: 30 * DAY, // Increased from 7 days to 30 days
 		immutable: true,
@@ -138,7 +163,15 @@ router.get('/client-assets/(.*)', async ctx => {
 });
 
 router.get('/assets/(.*)', async ctx => {
-	await send(ctx as any, ctx.path.replace('/assets/', ''), {
+	const filePath = ctx.path.replace('/assets/', '');
+
+	if (!isPathSafe(filePath, assets)) {
+		ctx.status = 403;
+		ctx.body = 'Forbidden';
+		return;
+	}
+
+	await send(ctx as any, filePath, {
 		root: assets,
 		maxage: YEAR, // Hashed assets can be cached for 1 year
 	});
@@ -388,7 +421,7 @@ router.get('/users/:user', async ctx => {
 		return;
 	}
 
-	ctx.redirect(`/@${user.username}${ user.host == null ? '' : '@' + user.host}`);
+	ctx.redirect(`/@${user.username}${user.host == null ? '' : '@' + user.host}`);
 });
 
 // Note

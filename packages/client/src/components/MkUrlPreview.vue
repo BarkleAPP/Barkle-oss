@@ -4,7 +4,7 @@
 		<button class="disablePlayer" :title="i18n.ts.disablePlayer" @click="playerEnabled = false"><i
 				class="ph-x-bold ph-lg"></i></button>
 		<iframe :src="player.url + (player.url.match(/\?/) ? '&autoplay=1&auto_play=1' : '?autoplay=1&auto_play=1')"
-			:width="player.width || '100%'" :heigth="player.height || 250" frameborder="0"
+			:width="player.width || '100%'" :height="player.height || 250" frameborder="0"
 			allow="autoplay; encrypted-media" allowfullscreen />
 	</div>
 	<!--<div v-else-if="isAppleMusic" class="apple-music">
@@ -26,7 +26,7 @@
 		<transition :name="$store.state.animation ? 'zoom' : ''" mode="out-in">
 			<component :is="self ? 'MkA' : 'a'" v-if="!fetching" class="link" :class="{ compact }"
 				:[attr]="self ? url.substr(local.length) : url" rel="nofollow noopener" :target="target" :title="url">
-				<div v-if="thumbnail" class="thumbnail" :style="thumbnailStyle">
+				<div v-if="thumbnail" class="thumbnail" :style="getSafeThumbnailStyle()">
 					<button v-if="!playerEnabled && player.url" class="_button" :title="i18n.ts.enablePlayer"
 						@click.prevent="playerEnabled = true"><i class="ph-play-circle-bold ph-lg"></i></button>
 				</div>
@@ -93,24 +93,6 @@ let appleMusicEmbedUrl = $ref('');
 let isFLV = $ref(false);
 let videoElement: HTMLMediaElement | null = null;
 
-// Security: Sanitize thumbnail URL to prevent CSS injection (CVE-2025-46340)
-// Only allow http/https URLs and escape special characters
-const thumbnailStyle = $computed(() => {
-	if (!thumbnail) return {};
-	// Validate URL protocol - only allow http/https
-	try {
-		const url = new URL(thumbnail);
-		if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-			return {};
-		}
-	} catch {
-		return {};
-	}
-	// Use CSS.escape for safe URL handling or escape manually
-	const safeUrl = thumbnail.replace(/['"\\()]/g, '\\$&');
-	return { backgroundImage: `url('${safeUrl}')` };
-});
-
 const requestUrl = new URL(props.url);
 
 if (requestUrl.hostname === 'live.barkle.chat' && requestUrl.pathname.endsWith('.m3u8')) {
@@ -163,6 +145,30 @@ fetch(`/url?url=${encodeURIComponent(requestUrl.href)}&lang=${requestLang}`).the
 	});
 });
 
+/**
+ * Validate and sanitize thumbnail URL to prevent CSS injection.
+ * Returns a safe style object for background-image, or empty object for invalid URLs.
+ */
+function getSafeThumbnailStyle(): Record<string, string> {
+	if (!thumbnail) return {};
+
+	try {
+		const url = new URL(thumbnail);
+		// Only allow http and https protocols
+		if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+			return {};
+		}
+		// Use CSS.escape to sanitize the URL for safe CSS usage
+		const escapedUrl = CSS.escape(thumbnail);
+		return {
+			backgroundImage: `url('${escapedUrl}')`
+		};
+	} catch {
+		// Invalid URL
+		return {};
+	}
+}
+
 function adjustTweetHeight(message: any) {
 	if (message.origin !== 'https://platform.twitter.com') return;
 	const embed = message.data?.['twttr.embed'];
@@ -180,7 +186,7 @@ onUnmounted(() => {
 </script>
 
 <style lang="scss" scoped>
-.flv-meadia {
+.flv-media {
 	display: flex;
 	justify-content: center;
 	align-items: center;

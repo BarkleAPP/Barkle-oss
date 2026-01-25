@@ -1,5 +1,5 @@
 import Koa from 'koa';
-import rndstr from 'rndstr';
+import { secureRndstr } from '@/misc/secure-rndstr.js';
 import bcrypt from 'bcryptjs';
 import Stripe from 'stripe';
 import { fetchMeta } from '@/misc/fetch-meta.js';
@@ -25,14 +25,14 @@ interface SignupBody {
  * Create Stripe customer asynchronously (non-blocking)
  */
 async function createStripeCustomerAsync(
-  userId: string, 
-  username: string, 
-  emailAddress: string | undefined, 
+  userId: string,
+  username: string,
+  emailAddress: string | undefined,
   stripeKey: string
 ): Promise<void> {
   try {
     console.log(`🔧 STRIPE: Creating customer for user ${userId} in background`);
-    
+
     const stripe = new Stripe(stripeKey, {
       apiVersion: '2024-06-20',
     });
@@ -43,13 +43,9 @@ async function createStripeCustomerAsync(
       metadata: { userId, username },
     });
 
-    // Update user with Stripe customer ID
     await Users.update({ id: userId }, { stripe_user: [customer.id] });
-    
-    console.log(`🔧 STRIPE: Customer ${customer.id} created for user ${userId}`);
   } catch (error) {
-    console.error(`❌ STRIPE ERROR: Failed to create customer for user ${userId}:`, error);
-    // Don't throw - this is non-blocking
+    console.error('Failed to create Stripe customer:', error);
   }
 }
 
@@ -118,7 +114,7 @@ export default async (ctx: Koa.Context) => {
   }
 
   if (instance.emailRequiredForSignup) {
-    const code = rndstr('a-z0-9', 16);
+    const code = secureRndstr(16, false);
     const salt = await bcrypt.genSalt(8);
     const hash = await bcrypt.hash(password, salt);
 
@@ -132,9 +128,11 @@ export default async (ctx: Koa.Context) => {
     });
 
     const link = `${config.url}/signup-complete/${code}`;
-    sendEmail(emailAddress, 'Signup',
-      `To complete signup, please click this link:<br><a href="${link}">${link}</a>`,
-      `To complete signup, please click this link: ${link}`);
+    if (emailAddress) {
+      sendEmail(emailAddress, 'Signup',
+        `To complete signup, please click this link:<br><a href="${link}">${link}</a>`,
+        `To complete signup, please click this link: ${link}`);
+    }
 
     ctx.status = 204;
   } else {
@@ -143,34 +141,20 @@ export default async (ctx: Koa.Context) => {
         username, password, host,
       });
 
-      // Handle invitation code if provided
       if (invitationCode) {
-        console.log(`🎁 SIGNUP DEBUG: Processing invitation code ${invitationCode} for new user ${account.id}`);
         try {
-          // Import invitation service
           const { InvitationService } = await import('@/services/invitation-service.js');
           const invitationService = new InvitationService();
-
-          console.log(`🎁 SIGNUP DEBUG: InvitationService imported and instantiated successfully`);
-
-          // Process the invitation for the new user and distribute rewards
-          const result = await invitationService.processInvitationForNewUser(invitationCode, account.id);
-          console.log(`🎁 SIGNUP DEBUG: Invitation processing completed successfully:`, result);
-        } catch (inviteError) {
-          console.error('❌ SIGNUP ERROR: Failed to process invitation during signup:', inviteError);
-          console.error('❌ SIGNUP ERROR: Stack trace:', inviteError.stack);
-          // Don't fail the signup if invitation processing fails
+          await invitationService.processInvitationForNewUser(invitationCode, account.id);
+        } catch (e: unknown) {
+          console.error('Failed to process invitation:', e);
         }
-      } else {
-        console.log(`🎁 SIGNUP DEBUG: No invitation code provided for user ${account.id}`);
       }
 
-      // Create Stripe customer if stripe_key is available (NON-BLOCKING)
       if (instance.stripe_key) {
-        // Run Stripe customer creation in background to avoid blocking signup
-        this.createStripeCustomerAsync(account.id, account.username, emailAddress, instance.stripe_key)
-          .catch(error => {
-            console.error('❌ STRIPE ERROR: Failed to create customer for user', account.id, ':', error);
+        createStripeCustomerAsync(account.id, account.username, emailAddress, instance.stripe_key)
+          .catch((e: Error) => {
+            console.error('Failed to create Stripe customer:', e);
           });
       }
 

@@ -23,8 +23,8 @@
 				<span v-else-if="!defaultStore.state.useOsNativeEmojis" class="emoji"><img :src="emoji.url"
 						:alt="emoji.emoji" /></span>
 				<span v-else class="emoji">{{ emoji.emoji }}</span>
-				<!-- Security: Use safe highlight function to prevent XSS -->
-				<span class="name" v-html="highlightQuery(emoji.name, q)"></span>
+				<!-- eslint-disable-next-line vue/no-v-html -->
+				<span class="name" v-html="highlightEmojiName(emoji.name)"></span>
 				<span v-if="emoji.aliasOf" class="alias">({{ emoji.aliasOf }})</span>
 			</li>
 		</ol>
@@ -145,26 +145,38 @@ const mfmTags = ref<string[]>([]);
 const select = ref(-1);
 const zIndex = os.claimZIndex('high');
 
-// Security: Escape HTML to prevent XSS attacks
-function escapeHtml(unsafe: string): string {
-	return unsafe
+/**
+ * Escape HTML special characters to prevent XSS
+ */
+function escapeHtml(text: string): string {
+	return text
 		.replace(/&/g, '&amp;')
 		.replace(/</g, '&lt;')
 		.replace(/>/g, '&gt;')
 		.replace(/"/g, '&quot;')
-		.replace(/'/g, '&#039;');
+		.replace(/'/g, '&#x27;');
 }
 
-// Security: Safe highlight function that escapes HTML before highlighting
-function highlightQuery(name: string, query: string | null): string {
-	if (!query) return escapeHtml(name);
-
-	// Escape both name and query first
+/**
+ * Safely highlight emoji name by escaping both the name and query,
+ * then inserting safe <b> tags around the matched substring
+ */
+function highlightEmojiName(name: string): string {
 	const escapedName = escapeHtml(name);
-	const escapedQuery = escapeHtml(query);
+	const q = props.q ?? '';
+	if (!q) return escapedName;
 
-	// Now it's safe to use the escaped strings in HTML
-	return escapedName.replace(new RegExp(`(${escapedQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'), '<b>$1</b>');
+	const escapedQuery = escapeHtml(q);
+	// Find the position in the escaped string where the escaped query appears
+	const index = escapedName.toLowerCase().indexOf(escapedQuery.toLowerCase());
+	if (index === -1) return escapedName;
+
+	// Preserve original casing from the escaped name
+	const before = escapedName.substring(0, index);
+	const match = escapedName.substring(index, index + escapedQuery.length);
+	const after = escapedName.substring(index + escapedQuery.length);
+
+	return `${before}<b>${match}</b>${after}`;
 }
 
 function complete(type: string, value: any) {

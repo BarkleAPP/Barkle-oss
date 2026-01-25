@@ -186,8 +186,8 @@ export default abstract class Chart<T extends Schema> {
 		const createEntity = (span: 'hour' | 'day'): EntitySchema => new EntitySchema({
 			name:
 				span === 'hour' ? `__chart__${camelToSnake(name)}` :
-				span === 'day' ? `__chart_day__${camelToSnake(name)}` :
-				new Error('not happen') as never,
+					span === 'day' ? `__chart_day__${camelToSnake(name)}` :
+						new Error('not happen') as never,
 			columns: {
 				id: {
 					type: 'integer',
@@ -261,8 +261,8 @@ export default abstract class Chart<T extends Schema> {
 	private getLatestLog(group: string | null, span: 'hour' | 'day'): Promise<RawRecord<T> | null> {
 		const repository =
 			span === 'hour' ? this.repositoryForHour :
-			span === 'day' ? this.repositoryForDay :
-			new Error('not happen') as never;
+				span === 'day' ? this.repositoryForDay :
+					new Error('not happen') as never;
 
 		return repository.findOne({
 			where: group ? {
@@ -282,13 +282,13 @@ export default abstract class Chart<T extends Schema> {
 
 		const current = dateUTC(
 			span === 'hour' ? [y, m, d, h] :
-			span === 'day' ? [y, m, d] :
-			new Error('not happen') as never);
+				span === 'day' ? [y, m, d] :
+					new Error('not happen') as never);
 
 		const repository =
 			span === 'hour' ? this.repositoryForHour :
-			span === 'day' ? this.repositoryForDay :
-			new Error('not happen') as never;
+				span === 'day' ? this.repositoryForDay :
+					new Error('not happen') as never;
 
 		// 現在(=今のHour or Day)のログ
 		const currentLog = await repository.findOneBy({
@@ -403,17 +403,20 @@ export default abstract class Chart<T extends Schema> {
 			for (const [k, v] of Object.entries(finalDiffs)) {
 				if (typeof v === 'number') {
 					const name = columnPrefix + k.replaceAll('.', columnDot) as keyof Columns<T>;
-					if (v > 0) queryForHour[name] = () => `"${name}" + ${v}`;
-					if (v < 0) queryForHour[name] = () => `"${name}" - ${Math.abs(v)}`;
-					if (v > 0) queryForDay[name] = () => `"${name}" + ${v}`;
-					if (v < 0) queryForDay[name] = () => `"${name}" - ${Math.abs(v)}`;
+					if (v > 0) (queryForHour as any)[String(name)] = () => `"${String(name)}" + ${v}`;
+					if (v < 0) (queryForHour as any)[String(name)] = () => `"${String(name)}" - ${Math.abs(v)}`;
+					if (v > 0) (queryForDay as any)[String(name)] = () => `"${String(name)}" + ${v}`;
+					if (v < 0) (queryForDay as any)[String(name)] = () => `"${String(name)}" - ${Math.abs(v)}`;
 				} else if (Array.isArray(v) && v.length > 0) { // ユニークインクリメント
 					const tempColumnName = uniqueTempColumnPrefix + k.replaceAll('.', columnDot) as keyof TempColumnsForUnique<T>;
-					// TODO: item をSQLエスケープ
-					const itemsForHour = v.filter(item => !logHour[tempColumnName].includes(item)).map(item => `"${item}"`);
-					const itemsForDay = v.filter(item => !logDay[tempColumnName].includes(item)).map(item => `"${item}"`);
-					if (itemsForHour.length > 0) queryForHour[tempColumnName] = () => `array_cat("${tempColumnName}", '{${itemsForHour.join(',')}}'::varchar[])`;
-					if (itemsForDay.length > 0) queryForDay[tempColumnName] = () => `array_cat("${tempColumnName}", '{${itemsForDay.join(',')}}'::varchar[])`;
+
+					const escapeArrayItem = (item: string): string => {
+						return item.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+					};
+					const itemsForHour = v.filter(item => !(logHour[tempColumnName] as any[]).includes(item)).map(item => `"${escapeArrayItem(String(item))}"`);
+					const itemsForDay = v.filter(item => !(logDay[tempColumnName] as any[]).includes(item)).map(item => `"${escapeArrayItem(String(item))}"`);
+					if (itemsForHour.length > 0) (queryForHour as any)[String(tempColumnName)] = () => `array_cat("${String(tempColumnName)}", '{${itemsForHour.join(',')}}'::varchar[])`;
+					if (itemsForDay.length > 0) (queryForDay as any)[String(tempColumnName)] = () => `array_cat("${String(tempColumnName)}", '{${itemsForDay.join(',')}}'::varchar[])`;
 				}
 			}
 
@@ -569,13 +572,13 @@ export default abstract class Chart<T extends Schema> {
 
 		const gt =
 			span === 'day' ? subtractTime(cursor ? dateUTC([y2, m2, d2, 0]) : dateUTC([y, m, d, 0]), amount - 1, 'day') :
-			span === 'hour' ? subtractTime(cursor ? dateUTC([y2, m2, d2, h2]) : dateUTC([y, m, d, h]), amount - 1, 'hour') :
-			new Error('not happen') as never;
+				span === 'hour' ? subtractTime(cursor ? dateUTC([y2, m2, d2, h2]) : dateUTC([y, m, d, h]), amount - 1, 'hour') :
+					new Error('not happen') as never;
 
 		const repository =
 			span === 'hour' ? this.repositoryForHour :
-			span === 'day' ? this.repositoryForDay :
-			new Error('not happen') as never;
+				span === 'day' ? this.repositoryForDay :
+					new Error('not happen') as never;
 
 		// ログ取得
 		let logs = await repository.find({
@@ -605,7 +608,7 @@ export default abstract class Chart<T extends Schema> {
 				logs = [recentLog];
 			}
 
-		// 要求された範囲の最も古い箇所に位置するログが存在しなかったら
+			// 要求された範囲の最も古い箇所に位置するログが存在しなかったら
 		} else if (!isTimeSame(new Date(logs[logs.length - 1].date * 1000), gt)) {
 			// 要求された範囲の最も古い箇所時点での最も新しいログを持ってきて末尾に追加する
 			// (隙間埋めできないため)
@@ -629,8 +632,8 @@ export default abstract class Chart<T extends Schema> {
 		for (let i = (amount - 1); i >= 0; i--) {
 			const current =
 				span === 'hour' ? subtractTime(dateUTC([y, m, d, h]), i, 'hour') :
-				span === 'day' ? subtractTime(dateUTC([y, m, d]), i, 'day') :
-				new Error('not happen') as never;
+					span === 'day' ? subtractTime(dateUTC([y, m, d]), i, 'day') :
+						new Error('not happen') as never;
 
 			const log = logs.find(l => isTimeSame(new Date(l.date * 1000), current));
 

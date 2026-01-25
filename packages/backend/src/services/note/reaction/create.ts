@@ -68,14 +68,13 @@ export default async (user: { id: User['id']; host: User['host']; }, note: Note,
 		}
 	}
 
-	// Increment reactions count
-	const sql = `jsonb_set("reactions", '{${reaction}}', (COALESCE("reactions"->>'${reaction}', '0')::int + 1)::text::jsonb)`;
 	await Notes.createQueryBuilder().update()
 		.set({
-			reactions: () => sql,
+			reactions: () => `jsonb_set("reactions", ARRAY[:reaction]::text[], (COALESCE("reactions"->>:reaction, '0')::int + 1)::text::jsonb)`,
 			score: () => '"score" + 1',
 		})
 		.where('id = :id', { id: note.id })
+		.setParameter('reaction', reaction)
 		.execute();
 
 	perUserReactionsChart.update(user, note);

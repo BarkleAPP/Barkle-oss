@@ -1,12 +1,21 @@
 <template>
-  <div ref="messageElement" class="modern-message-bubble" :class="{
-    'own-message': isOwn,
-    'other-message': !isOwn,
-    'has-reactions': message.reactionCounts && Object.keys(message.reactionCounts).length > 0,
-    'has-reply': message.reply,
-    'long-pressing': isLongPressing
-  }" @contextmenu="showMessageMenu" @mouseenter="handleMouseEnter" @mouseleave="handleMouseLeave"
-    @touchstart="handleTouchStart" @touchend="handleTouchEnd" @touchcancel="handleTouchCancel">
+  <div 
+    ref="messageElement"
+    class="modern-message-bubble"
+    :class="{ 
+      'own-message': isOwn,
+      'other-message': !isOwn,
+      'has-reactions': message.reactionCounts && Object.keys(message.reactionCounts).length > 0,
+      'has-reply': message.reply,
+      'long-pressing': isLongPressing
+    }"
+    @contextmenu="showMessageMenu"
+    @mouseenter="handleMouseEnter"
+    @mouseleave="handleMouseLeave"
+    @touchstart="handleTouchStart"
+    @touchend="handleTouchEnd"
+    @touchcancel="handleTouchCancel"
+  >
     <!-- Reply Preview -->
     <div v-if="message.reply" class="reply-preview">
       <div class="reply-indicator"></div>
@@ -33,11 +42,19 @@
         <span v-if="showTime" class="message-time">
           {{ formatTime(message.createdAt) }}
         </span>
-
+        
         <!-- Read Status for own messages -->
         <div v-if="isOwn && isLastInCluster" class="read-status">
-          <i v-if="message.isRead" class="ph-checks-bold read" title="Read"></i>
-          <i v-else class="ph-check-bold sent" title="Sent"></i>
+          <i 
+            v-if="message.isRead" 
+            class="ph-checks-bold read"
+            title="Read"
+          ></i>
+          <i 
+            v-else 
+            class="ph-check-bold sent"
+            title="Sent"
+          ></i>
         </div>
 
         <!-- Edit Indicator -->
@@ -49,13 +66,18 @@
 
     <!-- Message Reactions -->
     <div v-if="message.reactionCounts && Object.keys(message.reactionCounts).length > 0" class="message-reactions">
-      <button v-for="reaction in groupedReactions" :key="reaction.emoji" class="reaction-item"
-        :class="{ 'user-reacted': reaction.userReacted }" @click="toggleReaction(reaction.emoji)"
-        :title="getReactionTooltip(reaction)">
+      <button
+        v-for="reaction in groupedReactions"
+        :key="reaction.emoji"
+        class="reaction-item"
+        :class="{ 'user-reacted': reaction.userReacted }"
+        @click="toggleReaction(reaction.emoji)"
+        :title="getReactionTooltip(reaction)"
+      >
         <span class="reaction-emoji">{{ reaction.emoji }}</span>
         <span class="reaction-count">{{ reaction.count }}</span>
       </button>
-
+      
       <button class="add-reaction" @click="showReactionPicker" title="Add reaction">
         <i class="ph-smiley-bold"></i>
       </button>
@@ -66,16 +88,25 @@
       <button class="quick-action" @click="handleReply" title="Reply">
         <i class="ph-arrow-bend-up-left-bold"></i>
       </button>
-
-      <button class="quick-action" @click="showReactionPicker" title="React">
+      
+      <button 
+        class="quick-action" 
+        @click="showReactionPicker" 
+        title="React"
+      >
         <i class="ph-smiley-bold"></i>
       </button>
-
+      
       <button class="quick-action" @click="copyMessage" title="Copy">
         <i class="ph-copy-bold"></i>
       </button>
-
-      <button v-if="isOwn" class="quick-action delete" @click="handleDelete" title="Delete">
+      
+      <button 
+        v-if="isOwn" 
+        class="quick-action delete" 
+        @click="handleDelete" 
+        title="Delete"
+      >
         <i class="ph-trash-bold"></i>
       </button>
     </div>
@@ -83,7 +114,12 @@
     <!-- Reaction Picker -->
     <div v-if="showReactionPickerState" class="reaction-picker-overlay" @click="showReactionPickerState = false">
       <div class="reaction-picker" @click.stop>
-        <button v-for="emoji in quickReactions" :key="emoji" class="reaction-option" @click="addReaction(emoji)">
+        <button
+          v-for="emoji in quickReactions"
+          :key="emoji"
+          class="reaction-option"
+          @click="addReaction(emoji)"
+        >
           {{ emoji }}
         </button>
         <button class="more-reactions" @click="openFullEmojiPicker">
@@ -160,9 +196,9 @@ const quickReactions = ['👍', '❤️', '😂', '😮', '😢', '😡', '👎'
 const groupedReactions = computed(() => {
   const reactionCounts = props.message.reactionCounts || {};
   const userReactions = props.message.userReactions || [];
-
+  
   if (Object.keys(reactionCounts).length === 0) return [];
-
+  
   return Object.entries(reactionCounts)
     .filter(([emoji, count]) => count > 0)
     .map(([emoji, count]) => ({
@@ -175,57 +211,48 @@ const groupedReactions = computed(() => {
 });
 
 // Methods
-// Security: HTML escape function to prevent XSS attacks
-function escapeHtml(unsafe: string): string {
-  return unsafe
+
+/**
+ * Escape HTML entities to prevent XSS attacks
+ * Must be called before inserting user content into HTML
+ */
+function escapeHtml(text: string): string {
+  return text
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+    .replace(/'/g, '&#x27;');
 }
 
 function formatMessage(text: string): string {
-  // Security: FIRST escape HTML to prevent XSS attacks (CVE-2021-XXXX pattern)
+  // Security: Escape HTML entities first to prevent XSS
   let formatted = escapeHtml(text);
-
-  // Convert URLs to links (now safe because text is escaped)
-  // URL regex - only match http/https URLs with safe characters
-  const urlRegex = /(https?:\/\/[^\s<>"']+)/g;
-  formatted = formatted.replace(urlRegex, (match) => {
-    // Double-check URL safety before creating link
-    try {
-      const url = new URL(match);
-      if (url.protocol === 'http:' || url.protocol === 'https:') {
-        // Escape the URL for href attribute
-        const safeHref = match.replace(/"/g, '&quot;');
-        return `<a href="${safeHref}" target="_blank" rel="noopener noreferrer">${match}</a>`;
-      }
-    } catch {
-      // Invalid URL, return escaped text
-    }
-    return match;
-  });
-
+  
+  // Convert URLs to links (safe because text is already escaped)
+  // URL regex matches escaped ampersands in URLs, so we need to handle that
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  formatted = formatted.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+  
   // Convert line breaks
   formatted = formatted.replace(/\n/g, '<br>');
-
+  
   return formatted;
 }
 
 function formatTime(timestamp: string): string {
   const date = new Date(timestamp);
-  return date.toLocaleTimeString(undefined, {
-    hour: 'numeric',
+  return date.toLocaleTimeString(undefined, { 
+    hour: 'numeric', 
     minute: '2-digit',
-    hour12: true
+    hour12: true 
   });
 }
 
 function getReplyAuthor(): string {
-  return props.message.reply?.user?.name ||
-    props.message.reply?.user?.username ||
-    'Unknown';
+  return props.message.reply?.user?.name || 
+         props.message.reply?.user?.username || 
+         'Unknown';
 }
 
 function getReplyText(): string {
@@ -239,21 +266,21 @@ function getReactionTooltip(reaction: any): string {
   if (reaction.count === 1) {
     return reaction.userReacted ? 'You reacted' : '1 person reacted';
   }
-
+  
   if (reaction.userReacted) {
     return reaction.count === 2 ? 'You and 1 other' : `You and ${reaction.count - 1} others`;
   }
-
+  
   return `${reaction.count} people reacted`;
 }
 
 function showMessageMenu(event: MouseEvent) {
   event.preventDefault();
-
+  
   // Only show on right-click for desktop (non-touch devices)
   if (!isTouchDevice.value) {
     showQuickActions.value = true;
-
+    
     // Hide after a delay if not interacting
     setTimeout(() => {
       if (!showReactionPickerState.value) {
@@ -286,7 +313,7 @@ function copyMessage() {
     navigator.clipboard?.writeText(props.message.text).catch(console.error);
   }
   showQuickActions.value = false;
-
+  
   // Show feedback on mobile
   if (isTouchDevice.value) {
     // Could add toast notification here
@@ -338,12 +365,12 @@ function handleTouchStart(event: TouchEvent) {
   isTouchDevice.value = true;
   touchStartTime.value = Date.now();
   isLongPressing.value = false;
-
+  
   // Clear any existing timer
   if (longPressTimer.value) {
     clearTimeout(longPressTimer.value);
   }
-
+  
   // Set up long press timer (500ms)
   longPressTimer.value = setTimeout(() => {
     isLongPressing.value = true;
@@ -361,14 +388,14 @@ function handleTouchEnd(event: TouchEvent) {
     clearTimeout(longPressTimer.value);
     longPressTimer.value = null;
   }
-
+  
   const touchDuration = Date.now() - touchStartTime.value;
-
+  
   // If it was a quick tap and menu is showing, hide it
   if (touchDuration < 500 && showQuickActions.value && !showReactionPickerState.value) {
     showQuickActions.value = false;
   }
-
+  
   isLongPressing.value = false;
 }
 
@@ -384,12 +411,12 @@ function handleTouchCancel(event: TouchEvent) {
 onMounted(() => {
   // Detect if this is a touch device
   isTouchDevice.value = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-
+  
   if (messageElement.value) {
     messageElement.value.addEventListener('mouseenter', handleMouseEnter);
     messageElement.value.addEventListener('mouseleave', handleMouseLeave);
   }
-
+  
   // Add global click/touch listener to hide menu when tapping outside on mobile
   if (isTouchDevice.value) {
     document.addEventListener('touchstart', handleGlobalTouch);
@@ -401,12 +428,12 @@ onUnmounted(() => {
   if (longPressTimer.value) {
     clearTimeout(longPressTimer.value);
   }
-
+  
   if (messageElement.value) {
     messageElement.value.removeEventListener('mouseenter', handleMouseEnter);
     messageElement.value.removeEventListener('mouseleave', handleMouseLeave);
   }
-
+  
   // Remove global touch listener
   if (isTouchDevice.value) {
     document.removeEventListener('touchstart', handleGlobalTouch);
@@ -416,7 +443,7 @@ onUnmounted(() => {
 // Handle global touch to hide menu when tapping outside
 function handleGlobalTouch(event: TouchEvent) {
   if (!showQuickActions.value || !messageElement.value) return;
-
+  
   const target = event.target as Node;
   if (!messageElement.value.contains(target)) {
     showQuickActions.value = false;
@@ -429,18 +456,18 @@ function handleGlobalTouch(event: TouchEvent) {
   position: relative;
   margin-bottom: 2px;
   transition: all 0.2s ease;
-
+  
   &:last-child {
     margin-bottom: 8px;
   }
-
+  
   &:hover {
     .quick-actions {
       opacity: 1;
       transform: translateY(0);
     }
   }
-
+  
   &.own-message {
     .message-content {
       background: linear-gradient(135deg, var(--accent) 0%, var(--accentDarken) 100%);
@@ -450,58 +477,58 @@ function handleGlobalTouch(event: TouchEvent) {
       margin-right: 0;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
       border: none;
-
+      
       .message-text {
         a {
           color: rgba(255, 255, 255, 0.9);
           text-decoration: underline;
         }
       }
-
+      
       .message-meta {
         .message-time {
           color: rgba(255, 255, 255, 0.8);
         }
-
+        
         .read-status i {
           &.sent {
             color: rgba(255, 255, 255, 0.8);
           }
-
+          
           &.read {
             color: rgba(255, 255, 255, 0.9);
           }
         }
-
+        
         .edit-indicator {
           color: rgba(255, 255, 255, 0.7);
         }
       }
     }
-
+    
     .reply-preview {
       .reply-content {
         background: rgba(255, 255, 255, 0.1);
         border-radius: 12px;
         padding: 8px 12px;
         backdrop-filter: blur(10px);
-
+        
         .reply-author {
           color: rgba(255, 255, 255, 0.9);
         }
-
+        
         .reply-text {
           color: rgba(255, 255, 255, 0.7);
         }
       }
     }
-
+    
     .quick-actions {
       right: 0;
       left: auto;
     }
   }
-
+  
   &.other-message {
     .message-content {
       background: var(--panel);
@@ -511,41 +538,41 @@ function handleGlobalTouch(event: TouchEvent) {
       margin-left: 0;
       margin-right: auto;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-
+      
       .message-text {
         a {
           color: var(--accent);
         }
       }
-
+      
       .message-meta {
         .message-time {
           color: var(--fgTransparentWeak);
         }
-
+        
         .edit-indicator {
           color: var(--fgTransparentWeak);
         }
       }
     }
-
+    
     .reply-preview {
       .reply-content {
         background: var(--X2);
         border-radius: 12px;
         padding: 8px 12px;
         border-left: 3px solid var(--accent);
-
+        
         .reply-author {
           color: var(--accent);
         }
-
+        
         .reply-text {
           color: var(--fgTransparentWeak);
         }
       }
     }
-
+    
     .quick-actions {
       left: 0;
       right: auto;
@@ -559,7 +586,7 @@ function handleGlobalTouch(event: TouchEvent) {
   gap: 0.5rem;
   margin-bottom: 0.75rem;
   padding-left: 12px;
-
+  
   .reply-indicator {
     width: 3px;
     height: 100%;
@@ -570,17 +597,17 @@ function handleGlobalTouch(event: TouchEvent) {
     margin-top: 2px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   }
-
+  
   .reply-content {
     flex: 1;
     min-width: 0;
     border-radius: 8px;
     transition: all 0.2s ease;
-
+    
     &:hover {
       transform: translateY(-1px);
     }
-
+    
     .reply-author {
       display: block;
       font-size: 0.8rem;
@@ -588,7 +615,7 @@ function handleGlobalTouch(event: TouchEvent) {
       margin-bottom: 0.125rem;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
-
+    
     .reply-text {
       display: block;
       font-size: 0.85rem;
@@ -606,46 +633,46 @@ function handleGlobalTouch(event: TouchEvent) {
   padding: 12px 16px;
   word-wrap: break-word;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-
+  
   .message-file {
     margin-bottom: 0.5rem;
-
+    
     &:last-child {
       margin-bottom: 0;
     }
   }
-
+  
   .message-text {
     line-height: 1.4;
-
+    
     :deep(a) {
       text-decoration: none;
       transition: opacity 0.2s;
-
+      
       &:hover {
         opacity: 0.8;
         text-decoration: underline;
       }
     }
   }
-
+  
   .message-meta {
     display: flex;
     align-items: center;
     justify-content: flex-end;
     gap: 0.375rem;
     margin-top: 0.25rem;
-
+    
     .message-time {
       font-size: 0.75rem;
       font-weight: 500;
       white-space: nowrap;
     }
-
+    
     .read-status i {
       font-size: 0.8rem;
     }
-
+    
     .edit-indicator {
       font-size: 0.7rem;
     }
@@ -658,7 +685,7 @@ function handleGlobalTouch(event: TouchEvent) {
   gap: 0.375rem;
   margin-top: 0.75rem;
   margin-left: 12px;
-
+  
   .reaction-item {
     display: flex;
     align-items: center;
@@ -672,7 +699,7 @@ function handleGlobalTouch(event: TouchEvent) {
     font-size: 0.8rem;
     position: relative;
     overflow: hidden;
-
+    
     &::before {
       content: '';
       position: absolute;
@@ -684,41 +711,41 @@ function handleGlobalTouch(event: TouchEvent) {
       opacity: 0;
       transition: opacity 0.2s ease;
     }
-
+    
     &:hover {
       background: var(--X2);
       transform: translateY(-2px);
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
       border-color: var(--accent);
-
+      
       &::before {
         opacity: 0.1;
       }
     }
-
+    
     &.user-reacted {
       background: var(--accentedBg);
       border-color: var(--accent);
       color: var(--accent);
       transform: translateY(-1px);
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-
+      
       &::before {
         opacity: 0.15;
       }
-
+      
       &:hover {
         transform: translateY(-2px);
         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
       }
     }
-
+    
     .reaction-emoji {
       font-size: 1rem;
       z-index: 1;
       position: relative;
     }
-
+    
     .reaction-count {
       font-weight: 600;
       font-size: 0.75rem;
@@ -726,7 +753,7 @@ function handleGlobalTouch(event: TouchEvent) {
       position: relative;
     }
   }
-
+  
   .add-reaction {
     display: flex;
     align-items: center;
@@ -741,7 +768,7 @@ function handleGlobalTouch(event: TouchEvent) {
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
-
+    
     &::before {
       content: '';
       position: absolute;
@@ -753,19 +780,19 @@ function handleGlobalTouch(event: TouchEvent) {
       opacity: 0;
       transition: opacity 0.2s ease;
     }
-
+    
     &:hover {
       background: var(--X2);
       color: var(--accent);
       transform: translateY(-2px) scale(1.05);
       border-color: var(--accent);
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-
+      
       &::before {
         opacity: 0.1;
       }
     }
-
+    
     i {
       font-size: 0.875rem;
       z-index: 1;
@@ -789,12 +816,12 @@ function handleGlobalTouch(event: TouchEvent) {
   z-index: 10;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
   backdrop-filter: blur(12px);
-
+  
   &.visible {
     opacity: 1;
     transform: translateY(0);
   }
-
+  
   .quick-action {
     width: 36px;
     height: 36px;
@@ -809,7 +836,7 @@ function handleGlobalTouch(event: TouchEvent) {
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
-
+    
     &::before {
       content: '';
       position: absolute;
@@ -821,33 +848,33 @@ function handleGlobalTouch(event: TouchEvent) {
       opacity: 0;
       transition: opacity 0.2s ease;
     }
-
+    
     &:hover {
       background: var(--X2);
       color: var(--accent);
       transform: translateY(-2px) scale(1.1);
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-
+      
       &::before {
         opacity: 0.1;
       }
     }
-
+    
     &.delete {
       &::before {
         background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
       }
-
+      
       &:hover {
         background: #fef2f2;
         color: #dc2626;
-
+        
         &::before {
           opacity: 0.1;
         }
       }
     }
-
+    
     i {
       font-size: 1rem;
       z-index: 1;
@@ -868,7 +895,7 @@ function handleGlobalTouch(event: TouchEvent) {
   justify-content: center;
   background: rgba(0, 0, 0, 0.2);
   backdrop-filter: blur(4px);
-
+  
   .reaction-picker {
     background: var(--panel);
     border: 1px solid var(--divider);
@@ -880,7 +907,7 @@ function handleGlobalTouch(event: TouchEvent) {
     backdrop-filter: blur(20px);
     transform: scale(0.9);
     animation: popIn 0.2s ease forwards;
-
+    
     .reaction-option {
       width: 48px;
       height: 48px;
@@ -895,7 +922,7 @@ function handleGlobalTouch(event: TouchEvent) {
       transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       position: relative;
       overflow: hidden;
-
+      
       &::before {
         content: '';
         position: absolute;
@@ -907,18 +934,18 @@ function handleGlobalTouch(event: TouchEvent) {
         opacity: 0;
         transition: opacity 0.2s ease;
       }
-
+      
       &:hover {
         background: var(--X2);
         transform: scale(1.2);
         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-
+        
         &::before {
           opacity: 0.1;
         }
       }
     }
-
+    
     .more-reactions {
       width: 48px;
       height: 48px;
@@ -933,7 +960,7 @@ function handleGlobalTouch(event: TouchEvent) {
       transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       position: relative;
       overflow: hidden;
-
+      
       &::before {
         content: '';
         position: absolute;
@@ -945,18 +972,18 @@ function handleGlobalTouch(event: TouchEvent) {
         opacity: 0;
         transition: opacity 0.2s ease;
       }
-
+      
       &:hover {
         background: var(--X3);
         color: var(--accent);
         transform: scale(1.2);
         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-
+        
         &::before {
           opacity: 0.1;
         }
       }
-
+      
       i {
         font-size: 1.1rem;
         z-index: 1;
@@ -981,22 +1008,21 @@ function handleGlobalTouch(event: TouchEvent) {
       user-select: none; // Prevent text selection during long press
       -webkit-user-select: none;
     }
-
+    
     .quick-actions {
       .quick-action {
         width: 36px;
         height: 36px;
         min-width: 44px; // Better touch targets
         min-height: 44px;
-
+        
         i {
           font-size: 1rem;
         }
       }
     }
-
+    
     .reaction-picker-overlay .reaction-picker {
-
       .reaction-option,
       .more-reactions {
         width: 40px;
@@ -1006,7 +1032,7 @@ function handleGlobalTouch(event: TouchEvent) {
         font-size: 1.2rem;
       }
     }
-
+    
     // Add visual feedback for touch interactions
     .message-content {
       transition: transform 0.1s ease, background-color 0.1s ease;
@@ -1017,18 +1043,17 @@ function handleGlobalTouch(event: TouchEvent) {
 // Touch device improvements
 @media (hover: none) {
   .modern-message-bubble {
-
     // Remove always-visible quick actions on touch devices
     .quick-actions {
       opacity: 0;
       transform: translateY(4px);
-
+      
       &.visible {
         opacity: 1;
         transform: translateY(0);
       }
     }
-
+    
     // Add visual feedback for long press
     &.long-pressing {
       .message-content {
@@ -1037,7 +1062,7 @@ function handleGlobalTouch(event: TouchEvent) {
         transition: transform 0.1s ease, background-color 0.1s ease;
       }
     }
-
+    
     // Regular touch feedback
     &:active:not(.long-pressing) {
       .message-content {
@@ -1045,17 +1070,16 @@ function handleGlobalTouch(event: TouchEvent) {
         transition: transform 0.05s ease;
       }
     }
-
+    
     // Improve touch targets
     .quick-actions .quick-action {
       min-width: 44px;
       min-height: 44px;
       touch-action: manipulation;
     }
-
+    
     // Better spacing for touch
     .reaction-picker-overlay .reaction-picker {
-
       .reaction-option,
       .more-reactions {
         min-width: 44px;

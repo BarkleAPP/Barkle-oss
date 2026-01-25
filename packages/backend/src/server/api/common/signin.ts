@@ -14,7 +14,8 @@ export default function (ctx: Koa.Context, user: ILocalUser, redirect = false) {
 			// SEE: https://github.com/koajs/koa/issues/974
 			// When using a SSL proxy it should be configured to add the "X-Forwarded-Proto: https" header
 			secure: config.url.startsWith('https'),
-			httpOnly: false,
+			// Security: httpOnly prevents JavaScript access, mitigating XSS-based session theft
+			httpOnly: true,
 			// SameSite=Lax prevents CSRF attacks (CVE-2025-24897)
 			sameSite: 'lax',
 		});
