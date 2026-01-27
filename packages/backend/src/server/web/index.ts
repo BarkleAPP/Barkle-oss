@@ -65,6 +65,23 @@ app.use(async (ctx, next) => {
 			ctx.status = 403;
 			return;
 		}
+
+		// Fix CVE-2025-24897: CSRF Protection for Bull Dashboard
+		if (ctx.method !== 'GET' && ctx.method !== 'HEAD') {
+			const origin = ctx.get('Origin');
+			const referer = ctx.get('Referer');
+			const host = ctx.host; // e.g., 'example.com' or 'example.com:3000'
+
+			// Check Origin or Referer matches Host
+			const validOrigin = origin && (origin === `https://${host}` || origin === `http://${host}`);
+			const validReferer = referer && (referer.startsWith(`https://${host}/`) || referer.startsWith(`http://${host}/`));
+
+			if (!validOrigin && !validReferer) {
+				ctx.status = 403;
+				ctx.body = 'Forbidden: CSRF Check Failed';
+				return;
+			}
+		}
 	}
 	await next();
 });

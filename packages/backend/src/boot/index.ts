@@ -4,13 +4,14 @@ import Xev from 'xev';
 
 import Logger from '@/services/logger.js';
 import { envOption } from '../env.js';
+import { getLogPath } from '@/misc/logging-config.js';
 
 // for typeorm
 import 'reflect-metadata';
 import { masterMain } from './master.js';
 import { workerMain } from './worker.js';
 
-const logger = new Logger('core', 'cyan');
+const logger = new Logger('core', 'cyan', true, getLogPath('app.log'));
 const clusterLogger = logger.createSubLogger('cluster', 'orange', false);
 const ev = new Xev();
 

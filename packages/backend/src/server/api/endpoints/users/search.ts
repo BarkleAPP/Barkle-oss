@@ -2,6 +2,7 @@ import { Brackets } from 'typeorm';
 import { UserProfiles, Users } from '@/models/index.js';
 import { User } from '@/models/entities/user.js';
 import { sqlLikeEscape } from '@/misc/sql-like-escape.js';
+import { safeForSql } from '@/misc/safe-for-sql.js';
 import define from '../../define.js';
 
 export const meta = {
@@ -35,7 +36,11 @@ export const paramDef = {
 	required: ['query'],
 } as const;
 
-export default define(meta, paramDef, async (ps, me) => {
+export default define(meta, paramDef, async (ps, me, _token, _file, _cleanup, ip) => {
+	if (!safeForSql(ps.query, ip || undefined)) {
+		return [];
+	}
+
 	const activeThreshold = new Date(Date.now() - (1000 * 60 * 60 * 24 * 30)); // 30日
 
 	const isUsername = ps.query.startsWith('@');
@@ -48,7 +53,7 @@ export default define(meta, paramDef, async (ps, me) => {
 			.andWhere(new Brackets(qb => {
 				qb
 					.where('user.updatedAt IS NULL')
-				.orWhere('user.updatedAt > :activeThreshold', { activeThreshold: activeThreshold });
+					.orWhere('user.updatedAt > :activeThreshold', { activeThreshold: activeThreshold });
 			}))
 			.andWhere('user.isSuspended = FALSE');
 
@@ -76,7 +81,7 @@ export default define(meta, paramDef, async (ps, me) => {
 			.andWhere(new Brackets(qb => {
 				qb
 					.where('user.updatedAt IS NULL')
-				.orWhere('user.updatedAt > :activeThreshold', { activeThreshold: activeThreshold });
+					.orWhere('user.updatedAt > :activeThreshold', { activeThreshold: activeThreshold });
 			}))
 			.andWhere('user.isSuspended = FALSE');
 
@@ -108,7 +113,7 @@ export default define(meta, paramDef, async (ps, me) => {
 				.andWhere(new Brackets(qb => {
 					qb
 						.where('user.updatedAt IS NULL')
-					.orWhere('user.updatedAt > :activeThreshold', { activeThreshold: activeThreshold });
+						.orWhere('user.updatedAt > :activeThreshold', { activeThreshold: activeThreshold });
 				}))
 				.andWhere('user.isSuspended = FALSE')
 				.setParameters(profQuery.getParameters());

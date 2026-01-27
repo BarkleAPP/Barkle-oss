@@ -14,6 +14,7 @@ import * as slow from 'koa-slow';
 import { IsNull } from 'typeorm';
 import config from '@/config/index.js';
 import Logger from '@/services/logger.js';
+import { getLogPath } from '@/misc/logging-config.js';
 import { Streams, UserProfiles, Users } from '@/models/index.js';
 import { genIdenticon } from '@/misc/gen-identicon.js';
 import { createTemp } from '@/misc/create-temp.js';
@@ -28,21 +29,20 @@ import proxyServer from './proxy/index.js';
 import webServer from './web/index.js';
 import { initializeStreamingServer } from './api/streaming.js';
 
-export const serverLogger = new Logger('server', 'gray', false);
+export const serverLogger = new Logger('server', 'gray', true, getLogPath('server.log'));
 
 // Init app
 const app = new Koa();
 
-// Security: Control proxy trust (CVE-2025-66482 mitigation)
-// Only trust X-Forwarded-For headers when explicitly configured
-// This prevents rate limit bypass attacks via header spoofing
-// Default is false (secure by default) - direct connection IP is used
-app.proxy = config.trustProxy ?? false;
+// Security: Control proxy trust
+// Trust X-Forwarded-For headers to enable correct IP detection and rate limiting
+// Default is true to support standard proxy deployments (Cloudflare, Nginx, etc.)
+app.proxy = config.trustProxy ?? true;
 
 if (app.proxy) {
 	serverLogger.info('Proxy trust enabled - X-Forwarded-For headers will be trusted for IP detection');
 } else {
-	serverLogger.info('Proxy trust disabled (secure default) - using direct connection IP');
+	serverLogger.info('Proxy trust disabled - using direct connection IP');
 }
 
 if (!['production', 'test'].includes(process.env.NODE_ENV || '')) {

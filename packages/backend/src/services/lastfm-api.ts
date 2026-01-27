@@ -17,9 +17,7 @@ async function lastfmApiCall(params: Record<string, string>) {
 
     const finalParams = new URLSearchParams(mutableParams);
     const url = `${LASTFM_API_URL}?${finalParams.toString()}`;
-    
-    console.log('Last.fm API URL:', url.replace(meta.lastfmApiKey, '[API_KEY]')); // Hide API key in logs
-    
+
     const response = await getJson(url);
 
     if (response.error) {
@@ -30,18 +28,13 @@ async function lastfmApiCall(params: Record<string, string>) {
 
 export async function getLastfmCurrentlyPlaying(integration: UserMusicIntegration): Promise<NowPlayingSong | null> {
     try {
-        console.log(`Fetching Last.fm data for user ${integration.userId}, username: ${integration.username}`);
-        
         const data = await lastfmApiCall({
             method: 'user.getrecenttracks',
             user: integration.username,
             limit: '1',
         });
 
-        console.log('Last.fm API response:', JSON.stringify(data, null, 2));
-
         if (!data.recenttracks || !data.recenttracks.track) {
-            console.log('No recent tracks found for user:', integration.username);
             return null;
         }
 
@@ -50,13 +43,10 @@ export async function getLastfmCurrentlyPlaying(integration: UserMusicIntegratio
         if (Array.isArray(track)) {
             track = track[0];
         }
-        
+
         if (!track) {
-            console.log('No track data found');
             return null;
         }
-        
-        console.log('Track data:', JSON.stringify(track, null, 2));
 
         // Check if the track is currently playing
         if (track['@attr'] && track['@attr'].nowplaying === 'true') {
@@ -81,14 +71,11 @@ export async function getLastfmCurrentlyPlaying(integration: UserMusicIntegratio
                 isPlaying: true,
                 service: 'lastfm' as const,
             };
-            console.log('Returning Last.fm now playing:', result);
             return result;
         }
 
-        console.log('Track is not currently playing (no @attr.nowplaying)');
         return null;
     } catch (error) {
-        console.error(`Error fetching Last.fm data for user ${integration.userId}:`, error);
         return null;
     }
 }

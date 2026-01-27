@@ -6,7 +6,8 @@ import Koa from 'koa';
 import Router from '@koa/router';
 import multer from '@koa/multer';
 import bodyParser from 'koa-bodyparser';
-import { AccessTokens, Users } from '@/models/index.js';
+import cors from '@koa/cors';
+import { Instances, AccessTokens, Users } from '@/models/index.js';
 import config from '@/config/index.js';
 import endpoints from './endpoints.js';
 import compatibility from './compatibility.js';
@@ -18,37 +19,13 @@ import discord from './service/discord.js';
 import github from './service/github.js';
 import twitter from './service/twitter.js';
 import spotify from './service/spotify.js';
-import { createCorsMiddleware } from '@/misc/security/cors-config.js';
 
 // Init app
 const app = new Koa();
 
-// Global error handler - catches all unhandled errors and formats them as JSON
-// This MUST be the first middleware to catch errors from all subsequent middleware
-app.use(async (ctx, next) => {
-	try {
-		await next();
-	} catch (err: any) {
-		// Log the error for debugging
-		console.error(`[API Server Error] ${ctx.method} ${ctx.path}:`, err);
-
-		// Determine appropriate status code
-		ctx.status = err.statusCode || err.status || 500;
-
-		// Format error as JSON response
-		ctx.body = {
-			error: {
-				message: err.expose ? err.message : 'Internal server error',
-				code: err.code || 'INTERNAL_ERROR',
-				id: err.id || '5d37dbcb-891e-41ca-a3d6-e690c97775ac',
-				kind: ctx.status >= 500 ? 'server' : 'client',
-			},
-		};
-	}
-});
-
-// Apply secure CORS configuration
-app.use(createCorsMiddleware(config));
+app.use(cors({
+	origin: '*',
+}));
 
 // No caching
 app.use(async (ctx, next) => {
@@ -61,7 +38,7 @@ app.use(bodyParser({
 	detectJSON: ctx => !(
 		ctx.is('multipart/form-data') ||
 		ctx.is('application/x-www-form-urlencoded')
-	),
+	)
 }));
 
 // Init multer instance
@@ -142,6 +119,5 @@ router.all('(.*)', async ctx => {
 
 // Register router
 app.use(router.routes());
-app.use(router.allowedMethods());
 
 export default app;

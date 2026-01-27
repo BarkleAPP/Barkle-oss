@@ -4,6 +4,8 @@ import { default as convertColor } from 'color-convert';
 import { format as dateFormat } from 'date-fns';
 import { envOption } from '../env.js';
 import config from '@/config/index.js';
+import fs from 'node:fs';
+import path from 'node:path';
 
 import * as SyslogPro from 'syslog-pro';
 
@@ -19,13 +21,28 @@ export default class Logger {
 	private parentLogger: Logger | null = null;
 	private store: boolean;
 	private syslogClient: any | null = null;
+	private logFilePath: string | null = null;
 
-	constructor(domain: string, color?: string, store = true) {
+	constructor(domain: string, color?: string, store = true, logFilePath?: string) {
 		this.domain = {
 			name: domain,
 			color: color,
 		};
 		this.store = store;
+		this.logFilePath = logFilePath || null;
+
+		if (this.logFilePath) {
+			// Ensure log directory exists
+			const logDir = path.dirname(this.logFilePath);
+			if (!fs.existsSync(logDir)) {
+				fs.mkdirSync(logDir, { recursive: true });
+			}
+
+			// Create log file if it doesn't exist
+			if (!fs.existsSync(this.logFilePath)) {
+				fs.writeFileSync(this.logFilePath, '', { mode: 0o600 });
+			}
+		}
 
 		if (config.syslog) {
 			this.syslogClient = new SyslogPro.RFC5424({
@@ -80,6 +97,25 @@ export default class Logger {
 		if (envOption.withLogTime) log = chalk.gray(time) + ' ' + log;
 
 		console.log(important ? chalk.bold(log) : log);
+
+		// Write to file if logFilePath is configured
+		if (this.logFilePath) {
+			const timestamp = new Date().toISOString();
+			const logEntry = {
+				timestamp,
+				level,
+				domain: this.domain.name,
+				worker,
+				message,
+				data: data || undefined,
+			};
+			try {
+				fs.appendFileSync(this.logFilePath, JSON.stringify(logEntry) + '\n');
+			} catch (err) {
+				// Silently fail if file logging fails
+				console.error('Failed to write to log file:', err);
+			}
+		}
 
 		if (store) {
 			if (this.syslogClient) {

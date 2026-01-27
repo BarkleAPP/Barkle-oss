@@ -1,7 +1,7 @@
 /**
- * Input sanitization utilities
  * Provides functions to sanitize and validate user input
  */
+import sanitizeHtml from 'sanitize-html';
 
 /**
  * Sanitize string input to prevent XSS attacks
@@ -287,4 +287,26 @@ export function sanitizeBio(text: string): string {
 	}
 
 	return sanitized;
+}
+
+/**
+ * Sanitize note content (text, cw) using robust HTML sanitizer
+ * - Allows basic safe formatting tags used in MFM (if applicable)
+ * - STRIPS ALL SCRIPTS, IFRAMES, OBJECTS
+ * - Removes inline styles and event handlers
+ */
+export function sanitizeNoteContent(text: string): string {
+	if (!text) return text;
+
+	return sanitizeHtml(text, {
+		allowedTags: [
+			// Safe formatting tags often used in rich text
+			'b', 'i', 'strong', 'em', 'u', 's', 'strike', 'small', 'big', 'center', 'blockquote', 'code', 'br', 'p', 'div', 'span', 'ul', 'ol', 'li'
+		],
+		allowedAttributes: {
+			// Allow class for potential custom styling if needed, but safe to allow generally as long as no style/on*
+			'*': ['class', 'data-*']
+		},
+		disallowedTagsMode: 'discard'
+	});
 }

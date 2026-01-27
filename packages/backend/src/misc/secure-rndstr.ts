@@ -17,3 +17,23 @@ export function secureRndstr(length = 32, useLU = true): string {
 	return str;
 }
 
+/**
+ * Generates a consistent SHA-256 hash of a token for storage
+ * @param token The token to hash
+ * @returns The hex-encoded SHA-256 hash
+ */
+export function generateTokenHash(token: string): string {
+	return crypto.createHash('sha256').update(token, 'utf8').digest('hex');
+}
+
+/**
+ * Validates that a token has the correct format
+ * @param token The token to validate
+ * @returns true if the token format is valid
+ */
+export function validateTokenFormat(token: string): boolean {
+	// Tokens should be at least 8 characters and contain only alphanumeric characters
+	if (token.length < 8) return false;
+	return /^[0-9a-zA-Z]+$/.test(token);
+}
+

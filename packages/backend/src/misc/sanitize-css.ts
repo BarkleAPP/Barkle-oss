@@ -39,8 +39,8 @@ function isValidUrl(url) {
 function sanitizeUrl(url) {
   if (isValidUrl(url)) {
     const parsedUrl = new URL(url);
-    if (parsedUrl.hostname === 'media.barkle.chat' || 
-        parsedUrl.hostname === 'fonts.googleapis.com') {
+    if (parsedUrl.hostname === 'media.barkle.chat' ||
+      parsedUrl.hostname === 'fonts.googleapis.com') {
       return url;
     }
   }
@@ -51,7 +51,13 @@ function sanitizeProperty(property, value) {
   if (!ALLOWED_PROPERTIES.has(property)) {
     return '';
   }
-  
+
+  // Security: Block Denial of Service vectors
+  if (property === 'display' && value.replace(/\s/g, '').includes('none')) return '';
+  if (property === 'position' && (value.includes('fixed') || value.includes('sticky'))) return '';
+  if (property === 'pointer-events' && value.replace(/\s/g, '').includes('none')) return '';
+  if (property === 'z-index' && parseInt(value) > 100) return 'z-index: 100;'; // Limit z-index
+
   if (property === 'background-image' || property === 'background') {
     const urlMatch = value.match(/url\(['"]?(.*?)['"]?\)/);
     if (urlMatch) {
@@ -62,7 +68,7 @@ function sanitizeProperty(property, value) {
       return '';
     }
   }
-  
+
   return `${property}: ${value};`;
 }
 
@@ -70,32 +76,32 @@ function sanitizeCss(css) {
   if (typeof css !== 'string') {
     return '';
   }
-  
+
   css = css.trim();
   if (css === '') {
     return '';
   }
-  
+
   if (css.length > MAX_CSS_LENGTH) {
     css = css.slice(0, MAX_CSS_LENGTH);
   }
-  
+
   // Remove comments
   css = css.replace(/\/\*[\s\S]*?\*\//g, '');
-  
+
   let sanitizedCss = '';
   let nestedLevel = 0;
   let inAtRule = false;
   let currentAtRule = '';
   let buffer = '';
-  
+
   for (let i = 0; i < css.length; i++) {
     const char = css[i];
-    
+
     if (char === '{') {
       nestedLevel++;
       const ruleName = buffer.trim().split(/\s+/)[0];
-      
+
       if (ALLOWED_AT_RULES.has(ruleName)) {
         inAtRule = true;
         currentAtRule = ruleName;
@@ -103,11 +109,11 @@ function sanitizeCss(css) {
       } else if (inAtRule || nestedLevel === 1) {
         sanitizedCss += buffer + char;
       }
-      
+
       buffer = '';
     } else if (char === '}') {
       nestedLevel--;
-      
+
       if (inAtRule) {
         if (nestedLevel === 0) {
           inAtRule = false;
@@ -121,18 +127,18 @@ function sanitizeCss(css) {
           const value = valueParts.join(':').trim();
           return sanitizeProperty(property.trim(), value);
         }).filter(prop => prop !== '');
-        
+
         sanitizedCss += sanitizedProperties.join(' ') + char;
       } else {
         sanitizedCss += buffer + char;
       }
-      
+
       buffer = '';
     } else {
       buffer += char;
     }
   }
-  
+
   return sanitizedCss;
 }
 

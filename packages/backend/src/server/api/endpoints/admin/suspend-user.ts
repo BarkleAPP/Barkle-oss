@@ -12,6 +12,8 @@ import { db } from '@/db/postgre.js';
 export const meta = {
 	tags: ['admin'],
 
+	kind: 'write:admin',
+
 	requireCredential: true,
 	requireModerator: true,
 } as const;
@@ -64,9 +66,9 @@ export default define(meta, paramDef, async (ps, me) => {
 	}
 
 	(async () => {
-		await doPostSuspend(user).catch(e => {});
-		await unFollowAll(user).catch(e => {});
-		await readAllNotify(user).catch(e => {});
+		await doPostSuspend(user).catch(e => { });
+		await unFollowAll(user).catch(e => { });
+		await readAllNotify(user).catch(e => { });
 	})();
 });
 

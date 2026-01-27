@@ -66,7 +66,7 @@ export const paramDef = {
 	],
 } as const;
 
-export default define(meta, paramDef, async (ps, me) => {
+export default define(meta, paramDef, async (ps, me, _token, _file, _cleanup, ip) => {
 	const query = makePaginationQuery(Notes.createQueryBuilder('note'), ps.sinceId, ps.untilId)
 		.innerJoinAndSelect('note.user', 'user')
 		.leftJoinAndSelect('user.avatar', 'avatar')
@@ -86,7 +86,7 @@ export default define(meta, paramDef, async (ps, me) => {
 
 	if (ps.tag) {
 		const normalizedTag = normalizeForSearch(ps.tag);
-		if (!safeForSql(normalizedTag)) {
+		if (!safeForSql(normalizedTag, ip || undefined)) {
 			return [];
 		}
 		query.andWhere(
@@ -98,7 +98,7 @@ export default define(meta, paramDef, async (ps, me) => {
 		// Validate all tags before building query
 		for (const tags of ps.query!) {
 			for (const tag of tags) {
-				if (!safeForSql(normalizeForSearch(tag))) {
+				if (!safeForSql(normalizeForSearch(tag), ip || undefined)) {
 					return [];
 				}
 			}

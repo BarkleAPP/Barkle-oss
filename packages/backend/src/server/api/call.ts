@@ -16,6 +16,44 @@ const accessDenied = {
 	id: '56f35758-7dd5-468b-8439-5d6fb8ec9b8e',
 };
 
+/**
+ * Sanitize request parameters to prevent sensitive data from being logged
+ * Redacts passwords, tokens, API keys, and other sensitive information
+ */
+function sanitizeParams(params: any): any {
+	if (!params || typeof params !== 'object') {
+		return params;
+	}
+
+	const sensitiveFields = [
+		'password',
+		'token',
+		'accessToken',
+		'refreshToken',
+		'secret',
+		'apiKey',
+		'apiSecret',
+		'privateKey',
+		'sessionToken',
+		'credential',
+		'i', // Misskey authentication token
+		'stripeSignature',
+		'muxSignature',
+	];
+
+	const sanitized = Array.isArray(params) ? [...params] : { ...params };
+
+	for (const key in sanitized) {
+		if (sensitiveFields.includes(key)) {
+			sanitized[key] = '[REDACTED]';
+		} else if (typeof sanitized[key] === 'object' && sanitized[key] !== null) {
+			sanitized[key] = sanitizeParams(sanitized[key]);
+		}
+	}
+
+	return sanitized;
+}
+
 export default async (endpoint: string, user: CacheableLocalUser | null | undefined, token: AccessToken | null | undefined, data: any, ctx?: Koa.Context, headers?: any) => {
 	const isSecure = user != null && token == null;
 	const isModerator = user != null && (user.isModerator || user.isAdmin);
@@ -127,6 +165,15 @@ export default async (endpoint: string, user: CacheableLocalUser | null | undefi
 	// API invoking
 	const before = performance.now();
 
+	// Log endpoint execution start with sanitized details
+	const sanitizedData = sanitizeParams(data);
+	apiLogger.debug(`Executing endpoint: ${endpoint}`, {
+		endpoint: endpoint,
+		userId: user?.id || null,
+		ip: ctx?.ip || null,
+		params: sanitizedData,
+	});
+
 	// Check if the endpoint requires elevated privileges
 	if (ep.meta.requiresElevated) {
 		if (!ctx) {
@@ -137,19 +184,19 @@ export default async (endpoint: string, user: CacheableLocalUser | null | undefi
 				httpStatusCode: 500,
 			});
 		}
-		
+
 		// For elevated endpoints, pass the full headers
 		return await ep.exec(data, user, token, ctx.file, ctx.ip, headers).catch((e: Error) => {
 			handleError(e, ep, data);
 		}).finally(() => {
-			logPerformance(before, ep);
+			logPerformance(before, ep, user?.id, ctx?.ip, sanitizedData);
 		});
 	} else {
 		// For non-elevated endpoints, use the existing execution method
 		return await ep.exec(data, user, token, ctx?.file, ctx?.ip).catch((e: Error) => {
 			handleError(e, ep, data);
 		}).finally(() => {
-			logPerformance(before, ep);
+			logPerformance(before, ep, user?.id, ctx?.ip, sanitizedData);
 		});
 	}
 };
@@ -163,9 +210,10 @@ function handleError(e: Error, ep: any, data: any) {
 			code: e.name,
 			stack: e.stack,
 		};
+		const sanitizedData = sanitizeParams(data);
 		apiLogger.error(`Internal error occurred in ${ep.name}: ${e.message}`, {
 			ep: ep.name,
-			ps: data,
+			ps: sanitizedData,
 			e: errorDetails,
 		});
 		// Log full stack trace to console for visibility
@@ -181,10 +229,24 @@ function handleError(e: Error, ep: any, data: any) {
 	}
 }
 
-function logPerformance(before: number, ep: any) {
+function logPerformance(before: number, ep: any, userId?: string | null, ip?: string | null, params?: any) {
 	const after = performance.now();
 	const time = after - before;
+
 	if (time > 1000) {
-		apiLogger.warn(`SLOW API CALL DETECTED: ${ep.name} (${time}ms)`);
+		apiLogger.warn(`SLOW API CALL DETECTED: ${ep.name} (${time.toFixed(2)}ms)`, {
+			endpoint: ep.name,
+			userId,
+			ip,
+			executionTimeMs: time.toFixed(2),
+			params,
+		});
+	} else {
+		apiLogger.debug(`${ep.name} completed (${time.toFixed(2)}ms)`, {
+			endpoint: ep.name,
+			userId,
+			ip,
+			executionTimeMs: time.toFixed(2),
+		});
 	}
 }

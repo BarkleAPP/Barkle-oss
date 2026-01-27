@@ -3,9 +3,12 @@ import { insertModerationLog } from '@/services/insert-moderation-log.js';
 import { DB_MAX_NOTE_TEXT_LENGTH } from '@/misc/hard-limits.js';
 import { db } from '@/db/postgre.js';
 import define from '../../define.js';
+import { sanitizeUrl, sanitizeNoteContent, sanitizeString } from '@/misc/security/input-sanitization.js';
 
 export const meta = {
 	tags: ['admin'],
+
+	kind: 'write:admin',
 
 	requireCredential: true,
 	requireAdmin: true,
@@ -228,7 +231,7 @@ export default define(meta, paramDef, async (ps, me) => {
 	}
 
 	if (Array.isArray(ps.customMOTD)) {
-		set.customMOTD = ps.customMOTD.filter(Boolean);
+		set.customMOTD = ps.customMOTD.filter(Boolean).map(x => sanitizeNoteContent(x));
 	}
 
 	if (Array.isArray(ps.customSplashIcons)) {
@@ -264,11 +267,11 @@ export default define(meta, paramDef, async (ps, me) => {
 	}
 
 	if (ps.mascotImageUrl !== undefined) {
-		set.mascotImageUrl = ps.mascotImageUrl;
+		set.mascotImageUrl = ps.mascotImageUrl === null ? null : sanitizeUrl(ps.mascotImageUrl);
 	}
 
 	if (ps.bannerUrl !== undefined) {
-		set.bannerUrl = ps.bannerUrl;
+		set.bannerUrl = ps.bannerUrl === null ? null : sanitizeUrl(ps.bannerUrl);
 	}
 
 	if (ps.logoImageUrl !== undefined) {
@@ -276,11 +279,11 @@ export default define(meta, paramDef, async (ps, me) => {
 	}
 
 	if (ps.iconUrl !== undefined) {
-		set.iconUrl = ps.iconUrl;
+		set.iconUrl = ps.iconUrl === null ? null : sanitizeUrl(ps.iconUrl);
 	}
 
 	if (ps.backgroundImageUrl !== undefined) {
-		set.backgroundImageUrl = ps.backgroundImageUrl;
+		set.backgroundImageUrl = ps.backgroundImageUrl === null ? null : sanitizeUrl(ps.backgroundImageUrl);
 	}
 
 	if (ps.logoImageUrl !== undefined) {
@@ -288,11 +291,11 @@ export default define(meta, paramDef, async (ps, me) => {
 	}
 
 	if (ps.name !== undefined) {
-		set.name = ps.name;
+		set.name = ps.name === null ? null : sanitizeNoteContent(ps.name);
 	}
 
 	if (ps.description !== undefined) {
-		set.description = ps.description;
+		set.description = ps.description === null ? null : sanitizeNoteContent(ps.description);
 	}
 
 	if (ps.defaultLightTheme !== undefined) {
@@ -364,7 +367,7 @@ export default define(meta, paramDef, async (ps, me) => {
 	}
 
 	if (ps.maintainerName !== undefined) {
-		set.maintainerName = ps.maintainerName;
+		set.maintainerName = ps.maintainerName === null ? null : sanitizeNoteContent(ps.maintainerName);
 	}
 
 	if (ps.maintainerEmail !== undefined) {
@@ -476,7 +479,7 @@ export default define(meta, paramDef, async (ps, me) => {
 	}
 
 	if (ps.errorImageUrl !== undefined) {
-		set.errorImageUrl = ps.errorImageUrl;
+		set.errorImageUrl = ps.errorImageUrl === null ? null : sanitizeUrl(ps.errorImageUrl);
 	}
 
 	if (ps.enableServiceWorker !== undefined) {
@@ -492,15 +495,15 @@ export default define(meta, paramDef, async (ps, me) => {
 	}
 
 	if (ps.tosUrl !== undefined) {
-		set.ToSUrl = ps.tosUrl;
+		set.ToSUrl = ps.tosUrl === null ? null : sanitizeUrl(ps.tosUrl);
 	}
 
 	if (ps.repositoryUrl !== undefined) {
-		set.repositoryUrl = ps.repositoryUrl;
+		set.repositoryUrl = sanitizeUrl(ps.repositoryUrl);
 	}
 
 	if (ps.feedbackUrl !== undefined) {
-		set.feedbackUrl = ps.feedbackUrl;
+		set.feedbackUrl = sanitizeUrl(ps.feedbackUrl);
 	}
 
 	if (ps.useObjectStorage !== undefined) {

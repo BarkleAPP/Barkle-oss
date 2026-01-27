@@ -35,6 +35,7 @@ import { UserProfile } from '@/models/entities/user-profile.js';
 import { db } from '@/db/postgre.js';
 import { getActiveWebhooks } from '@/misc/webhook-cache.js';
 import { NoteCategorization } from '../note-categorization-service.js';
+import { sanitizeNoteContent } from '@/misc/security/input-sanitization.js';
 
 const mutedWordsCache = new Cache<{ userId: UserProfile['userId']; mutedWords: UserProfile['mutedWords']; }[]>(1000 * 60 * 5);
 
@@ -176,13 +177,14 @@ export default async (user: { id: User['id']; username: User['username']; host: 
 	}
 
 	if (data.text) {
-		data.text = data.text.trim();
+		data.text = sanitizeNoteContent(data.text).trim();
 	} else {
 		data.text = null;
 	}
 
 	// Parse MFM to extract tokens
 	const tokens = data.text ? mfm.parse(data.text)! : [];
+	if (data.cw) data.cw = sanitizeNoteContent(data.cw).trim();
 	const cwTokens = data.cw ? mfm.parse(data.cw)! : [];
 	const choiceTokens = data.poll && data.poll.choices
 		? concat(data.poll.choices.map(choice => mfm.parse(choice)!))

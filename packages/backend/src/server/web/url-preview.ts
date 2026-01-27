@@ -4,7 +4,7 @@ import { fetchMeta } from '@/misc/fetch-meta.js';
 import Logger from '@/services/logger.js';
 import config from '@/config/index.js';
 import { query } from '@/prelude/url.js';
-import { getJson } from '@/misc/fetch.js';
+import { getJson, httpAgent, httpsAgent } from '@/misc/fetch.js';
 
 const logger = new Logger('url-preview');
 
@@ -34,6 +34,10 @@ export const urlPreviewHandler = async (ctx: Koa.Context) => {
 		})}`) : await summaly.default(url, {
 			followRedirects: false,
 			lang: lang ?? 'ja-JP',
+			agent: {
+				http: httpAgent,
+				https: httpsAgent,
+			}
 		});
 
 		logger.succ(`Got preview of ${url}: ${summary.title}`);

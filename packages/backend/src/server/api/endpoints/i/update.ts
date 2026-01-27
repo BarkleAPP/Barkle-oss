@@ -17,6 +17,7 @@ import { langmap } from '@/misc/langmap.js';
 import { ApiError } from '../../error.js';
 import define from '../../define.js';
 import { sanitizeCss } from '@/misc/sanitize-css.js';
+import { sanitizeNoteContent } from '@/misc/security/input-sanitization.js';
 import { In } from 'typeorm';
 
 export const meta = {
@@ -225,8 +226,8 @@ export default define(meta, paramDef, async (ps, _user, token) => {
 		updates.usernameLower = ps.username.toLowerCase();
 	}
 
-	if (ps.name !== undefined) updates.name = ps.name;
-	if (ps.description !== undefined) profileUpdates.description = ps.description;
+	if (ps.name !== undefined) updates.name = ps.name === null ? null : sanitizeNoteContent(ps.name);
+	if (ps.description !== undefined) profileUpdates.description = ps.description === null ? null : sanitizeNoteContent(ps.description);
 	if (ps.lang !== undefined) profileUpdates.lang = ps.lang;
 	if (ps.location !== undefined) profileUpdates.location = ps.location;
 	if (ps.birthday !== undefined) profileUpdates.birthday = ps.birthday;
@@ -297,7 +298,7 @@ export default define(meta, paramDef, async (ps, _user, token) => {
 		profileUpdates.fields = ps.fields
 			.filter(x => typeof x.name === 'string' && x.name !== '' && typeof x.value === 'string' && x.value !== '')
 			.map(x => {
-				return { name: x.name, value: x.value };
+				return { name: sanitizeNoteContent(x.name), value: sanitizeNoteContent(x.value) };
 			});
 	}
 

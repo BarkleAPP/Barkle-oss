@@ -84,7 +84,7 @@ export const paramDef = {
 	required: [],
 } as const;
 
-export default define(meta, paramDef, async (ps) => {
+export default define(meta, paramDef, async (ps, _user, _token, _file, _cleanup, ip) => {
 	try {
 		// Use enhanced trending service for better results
 		const trendingService = EnhancedTrendingService.getInstance();
@@ -120,18 +120,18 @@ export default define(meta, paramDef, async (ps) => {
 		// If enhanced service fails or returns no hashtags, fallback to original logic
 		if (legacyFormat.length === 0) {
 			console.log('No hashtags from enhanced service, using fallback');
-			return await fallbackTrendingLogic();
+			return await fallbackTrendingLogic(ip || undefined);
 		}
 
 		return legacyFormat;
 	} catch (error) {
 		console.error('Enhanced trending failed, using fallback:', error);
-		return await fallbackTrendingLogic();
+		return await fallbackTrendingLogic(ip || undefined);
 	}
 });
 
 // Fallback to original trending logic
-async function fallbackTrendingLogic() {
+async function fallbackTrendingLogic(ip?: string) {
 	const instance = await fetchMeta(true);
 	const hiddenTags = instance.hiddenTags.map(t => normalizeForSearch(t));
 
@@ -188,7 +188,7 @@ async function fallbackTrendingLogic() {
 
 	for (let i = 0; i < range; i++) {
 		countPromises.push(Promise.all(hots.map(tag => {
-			if (!safeForSql(tag)) return Promise.resolve(0);
+			if (!safeForSql(tag, ip)) return Promise.resolve(0);
 			return Notes.createQueryBuilder('note')
 				.select('count(distinct note.userId)')
 				.where('note.tags @> :tag', { tag: [tag] })
@@ -203,7 +203,7 @@ async function fallbackTrendingLogic() {
 	const countsLog = await Promise.all(countPromises);
 
 	const totalCounts = await Promise.all(hots.map(tag => {
-		if (!safeForSql(tag)) return Promise.resolve(0);
+		if (!safeForSql(tag, ip)) return Promise.resolve(0);
 		return Notes.createQueryBuilder('note')
 			.select('count(distinct note.userId)')
 			.where('note.tags @> :tag', { tag: [tag] })

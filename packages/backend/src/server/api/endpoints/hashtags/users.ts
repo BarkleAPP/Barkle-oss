@@ -32,9 +32,9 @@ export const paramDef = {
 	required: ['tag', 'sort'],
 } as const;
 
-export default define(meta, paramDef, async (ps, me) => {
+export default define(meta, paramDef, async (ps, me, _token, _file, _cleanup, ip) => {
 	const normalizedTag = normalizeForSearch(ps.tag);
-	if (!safeForSql(normalizedTag)) {
+	if (!safeForSql(normalizedTag, ip || undefined)) {
 		return [];
 	}
 	const query = Users.createQueryBuilder('user')

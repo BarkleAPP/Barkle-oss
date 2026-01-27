@@ -2,6 +2,7 @@ import { In } from 'typeorm';
 import { Notes } from '@/models/index.js';
 import config from '@/config/index.js';
 import { sqlLikeEscape } from '@/misc/sql-like-escape.js';
+import { safeForSql } from '@/misc/safe-for-sql.js';
 import es from '../../../../db/elasticsearch.js';
 import define from '../../define.js';
 import { makePaginationQuery } from '../../common/make-pagination-query.js';
@@ -48,7 +49,11 @@ export const paramDef = {
 	required: ['query'],
 } as const;
 
-export default define(meta, paramDef, async (ps, me) => {
+export default define(meta, paramDef, async (ps, me, _token, _file, _cleanup, ip) => {
+	if (!safeForSql(ps.query, ip || undefined)) {
+		return [];
+	}
+
 	if (es == null) {
 		const query = makePaginationQuery(Notes.createQueryBuilder('note'), ps.sinceId, ps.untilId);
 

@@ -1,6 +1,7 @@
 import define from '../../define.js';
 import { Hashtags } from '@/models/index.js';
 import { sqlLikeEscape } from '@/misc/sql-like-escape.js';
+import { safeForSql } from '@/misc/safe-for-sql.js';
 
 export const meta = {
 	tags: ['hashtags'],
@@ -28,7 +29,11 @@ export const paramDef = {
 	required: ['query'],
 } as const;
 
-export default define(meta, paramDef, async (ps) => {
+export default define(meta, paramDef, async (ps, _user, _token, _file, _cleanup, ip) => {
+	if (!safeForSql(ps.query, ip || undefined)) {
+		return [];
+	}
+
 	const hashtags = await Hashtags.createQueryBuilder('tag')
 		.where('tag.name like :q', { q: sqlLikeEscape(ps.query.toLowerCase()) + '%' })
 		.orderBy('tag.count', 'DESC')

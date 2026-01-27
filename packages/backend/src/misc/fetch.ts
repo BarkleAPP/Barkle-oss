@@ -3,6 +3,7 @@ import * as https from 'node:https';
 import { URL } from 'node:url';
 import CacheableLookup from 'cacheable-lookup';
 import { HttpProxyAgent, HttpsProxyAgent } from 'hpagent';
+import isPrivateIp from 'private-ip';
 import config from '@/config/index.js';
 
 export async function getJson(url: string, accept = 'application/json, */*', timeout = 10000, headers?: Record<string, string>) {
@@ -48,7 +49,9 @@ export async function getResponse(args: { url: string, method: string, body?: st
 		timeout,
 		size: args.size || 10 * 1024 * 1024,
 		agent: (url: URL, bypassProxy?: boolean) => {
-			if (bypassProxy || !config.proxy) return undefined;
+			if (bypassProxy || !config.proxy) {
+				return url.protocol === 'http:' ? httpAgent : httpsAgent;
+			}
 			const isHttps = url.protocol === 'https:';
 			const proxyUrl = new URL(config.proxy);
 			return isHttps
@@ -77,12 +80,25 @@ const cache = new CacheableLookup({
 });
 
 /**
+ * Safe DNS Lookup that blocks private IPs (SSRF protection)
+ */
+const safeLookup = (hostname: string, options: any, callback: (err: NodeJS.ErrnoException | null, address: string, family: number) => void) => {
+	cache.lookup(hostname, options, (err, address, family) => {
+		if (err) return callback(err, address, family);
+		if (isPrivateIp(address)) {
+			return callback(new Error(`Private IP rejected: ${address}`), '', 0);
+		}
+		callback(null, address, family);
+	});
+};
+
+/**
  * Get http non-proxy agent
  */
 const _http = new http.Agent({
 	keepAlive: true,
 	keepAliveMsecs: 30 * 1000,
-	lookup: cache.lookup,
+	lookup: safeLookup as any,
 } as http.AgentOptions);
 
 /**
@@ -91,7 +107,7 @@ const _http = new http.Agent({
 const _https = new https.Agent({
 	keepAlive: true,
 	keepAliveMsecs: 30 * 1000,
-	lookup: cache.lookup,
+	lookup: safeLookup as any,
 } as https.AgentOptions);
 
 const maxSockets = Math.max(256, config.deliverJobConcurrency || 128);
