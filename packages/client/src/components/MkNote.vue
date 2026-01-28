@@ -79,8 +79,7 @@
 				<footer class="footer">
 					<div class="barklefor">
 						<MkA class="barkle-for" :to="notePage(appearNote)">
-							<Mfm v-if="appearNote.barkleFor" :text="appearNote.barkleFor" :author="appearNote.user"
-								:i="$i" />
+							{{ appearNote.barkleFor }}
 						</MkA>
 					</div>
 					<XReactionsViewer ref="reactionsViewer" :note="appearNote" />
@@ -89,8 +88,8 @@
 						<template v-else><i class="ph-arrow-bend-up-left-bold ph-lg"></i></template>
 						<p v-if="appearNote.repliesCount > 0" class="count">{{ appearNote.repliesCount }}</p>
 					</button>
-					<XRenoteButton ref="renoteButton" class="button" :note="appearNote"
-						:count="appearNote.renoteCount" @renoted="onRenoted" />
+					<XRenoteButton ref="renoteButton" class="button" :note="appearNote" :count="appearNote.renoteCount"
+						@renoted="onRenoted" />
 					<XStarButton v-if="appearNote.myReaction == null" ref="starButton" class="button"
 						:note="appearNote" />
 					<button v-if="appearNote.myReaction == null" ref="reactButton"
@@ -108,13 +107,10 @@
 					</button>
 
 				</footer>
-				
+
 				<!-- Diversity Feedback Component -->
-				<DiversityFeedback 
-					:content-id="appearNote.id" 
-					:content="appearNote" 
-					class="diversity-feedback-section"
-				/>
+				<DiversityFeedback :content-id="appearNote.id" :content="appearNote"
+					class="diversity-feedback-section" />
 			</div>
 		</article>
 	</div>

@@ -126,7 +126,6 @@ head
     meta(name='apple-mobile-web-app-status-bar-style' content='black-translucent')
     
     //- MODERATE RESOURCE OPTIMIZATION - Keep performance but preserve UI
-    link(rel='preconnect' href='https://monitor.banditco.dev')
     link(rel='preconnect' href='https://fonts.googleapis.com')
     link(rel='preconnect' href='https://fonts.gstatic.com' crossorigin)
     link(rel='preconnect' href='https://media.barkle.chat')
@@ -217,19 +216,6 @@ head
         var VERSION = "#{version}";
         var CLIENT_ENTRY = "#{clientEntry.file}";
         
-        // Simple performance optimization - defer analytics only
-        window.addEventListener('load', function() {
-            if (window.requestIdleCallback) {
-                requestIdleCallback(function() {
-                    const script = document.createElement('script');
-                    script.defer = true;
-                    script.setAttribute('data-domain', 'barkle.chat');
-                    script.src = 'https://monitor.banditco.dev/js/script.js';
-                    script.nonce = "#{nonce}";
-                    document.head.appendChild(script);
-                });
-            }
-        });
     script(nonce=nonce)
         include ../boot.js
 body

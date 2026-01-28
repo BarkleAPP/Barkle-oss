@@ -1,120 +1,131 @@
 <template>
-<div
-	v-if="!muted"
-	v-show="!isDeleted"
-	ref="el"
-	v-hotkey="keymap"
-	v-size="{ max: [500, 450, 350, 300] }"
-	class="lxwezrsl _block"
-	:tabindex="!isDeleted ? '-1' : null"
-	:class="{ renote: isRenote }"
->
-	<MkNoteSub v-for="note in conversation" :key="note.id" class="reply-to-more" :note="note" @click.self="router.push(notePage(note))"/>
-	<MkNoteSub v-if="appearNote.reply" :note="appearNote.reply" class="reply-to" @click.self="router.push(notePage(appearNote))"/>
-	<div v-if="isRenote" class="renote">
-		<MkAvatar class="avatar" :user="note.user"/>
-		<i class="ph-repeat-bold ph-lg"></i>
-		<I18n :src="i18n.ts.renotedBy" tag="span">
-			<template #user>
-				<MkA v-user-preview="note.userId" class="name" :to="userPage(note.user)">
-					<MkUserName :user="note.user"/>
+	<div v-if="!muted" v-show="!isDeleted" ref="el" v-hotkey="keymap" v-size="{ max: [500, 450, 350, 300] }"
+		class="lxwezrsl _block" :tabindex="!isDeleted ? '-1' : null" :class="{ renote: isRenote }">
+		<MkNoteSub v-for="note in conversation" :key="note.id" class="reply-to-more" :note="note"
+			@click.self="router.push(notePage(note))" />
+		<MkNoteSub v-if="appearNote.reply" :note="appearNote.reply" class="reply-to"
+			@click.self="router.push(notePage(appearNote))" />
+		<div v-if="isRenote" class="renote">
+			<MkAvatar class="avatar" :user="note.user" />
+			<i class="ph-repeat-bold ph-lg"></i>
+			<I18n :src="i18n.ts.renotedBy" tag="span">
+				<template #user>
+					<MkA v-user-preview="note.userId" class="name" :to="userPage(note.user)">
+						<MkUserName :user="note.user" />
+					</MkA>
+				</template>
+			</I18n>
+			<div class="info">
+				<button ref="renoteTime" class="_button time" @click="showRenoteMenu()">
+					<i v-if="isMyRenote" class="ph-dots-three-outline-bold ph-lg dropdownIcon"></i>
+					<MkTime :time="note.createdAt" />
+				</button>
+				<MkVisibility :note="note" />
+			</div>
+		</div>
+		<article class="article">
+			<header class="header">
+				<MkAvatar class="avatar" :user="appearNote.user" :show-indicator="true" />
+				<div class="body">
+					<div class="top">
+						<MkA v-user-preview="appearNote.user.id" class="name" :to="userPage(appearNote.user)">
+							<MkUserName :user="appearNote.user" />
+						</MkA>
+						<span v-if="appearNote.user.isBot" class="is-bot">bot</span>
+						<div class="info">
+							<MkVisibility :note="appearNote" />
+						</div>
+					</div>
+					<div class="username">
+						<MkAcct :user="appearNote.user" />
+					</div>
+					<MkInstanceTicker v-if="showTicker" class="ticker" :instance="appearNote.user.instance" />
+				</div>
+			</header>
+			<div class="main">
+				<div class="body">
+					<p v-if="appearNote.cw != null" class="cw">
+						<Mfm v-if="appearNote.cw != ''" class="text" :text="appearNote.cw" :author="appearNote.user"
+							:i="$i" :custom-emojis="appearNote.emojis" />
+						<XCwButton v-model="showContent" :note="appearNote" />
+					</p>
+					<div v-show="appearNote.cw == null || showContent" class="content">
+						<div class="text" @click.self="router.push(notePage(appearNote))">
+							<MkA v-if="appearNote.replyId" class="reply" :to="`/barks/${appearNote.replyId}`"><i
+									class="ph-arrow-bend-up-left-bold ph-lg"></i></MkA>
+							<Mfm v-if="appearNote.text" :text="appearNote.text" :author="appearNote.user" :i="$i"
+								:custom-emojis="appearNote.emojis" />
+							<a v-if="appearNote.renote != null" class="rp">Echo:</a>
+							<div v-if="translating || translation" class="translation">
+								<MkLoading v-if="translating" mini />
+								<div v-else class="translated">
+									<b>{{ i18n.t('translatedFrom', { x: translation.sourceLang }) }}: </b>
+									<Mfm :text="translation.text" :author="appearNote.user" :i="$i"
+										:custom-emojis="appearNote.emojis" />
+								</div>
+							</div>
+						</div>
+						<div v-if="appearNote.files.length > 0" class="files">
+							<XMediaList :media-list="appearNote.files" />
+						</div>
+						<XPoll v-if="appearNote.poll" ref="pollViewer" :note="appearNote" class="poll" />
+						<MkUrlPreview v-for="url in urls" :key="url" :url="url" :compact="true" :detail="true"
+							class="url-preview" />
+						<div v-if="appearNote.renote" class="renote">
+							<XNoteSimple :note="appearNote.renote" />
+						</div>
+					</div>
+					<MkA v-if="appearNote.channel && !inChannel" class="channel"
+						:to="`/channels/${appearNote.channel.id}`"><i class="ph-television-bold ph-lg"></i> {{
+							appearNote.channel.name }}</MkA>
+				</div>
+				<footer class="footer">
+					<div class="info">
+						<MkA class="created-at" :to="notePage(appearNote)">
+							<MkTime :time="appearNote.createdAt" mode="detail" />
+						</MkA>
+						<MkA class="barkle-for" :to="notePage(appearNote)">
+							{{ appearNote.barkleFor }}
+						</MkA>
+					</div>
+					<XReactionsViewer ref="reactionsViewer" :note="appearNote" />
+					<button v-tooltip.noDelay.bottom="i18n.ts.reply" class="button _button" @click="reply()">
+						<template v-if="appearNote.reply"><i class="ph-arrow-u-up-left-bold ph-lg"></i></template>
+						<template v-else><i class="ph-arrow-bend-up-left-bold ph-lg"></i></template>
+						<p v-if="appearNote.repliesCount > 0" class="count">{{ appearNote.repliesCount }}</p>
+					</button>
+					<XRenoteButton ref="renoteButton" class="button" :note="appearNote"
+						:count="appearNote.renoteCount" />
+					<XStarButton v-if="appearNote.myReaction == null" ref="starButton" class="button"
+						:note="appearNote" />
+					<button v-if="appearNote.myReaction == null" ref="reactButton"
+						v-tooltip.noDelay.bottom="i18n.ts.reaction" class="button _button" @click="react()">
+						<i class="ph-smiley-bold ph-lg"></i>
+					</button>
+					<button v-if="appearNote.myReaction != null" ref="reactButton" class="button _button reacted"
+						@click="undoReact(appearNote)">
+						<i class="ph-minus-bold ph-lg"></i>
+					</button>
+					<XQuoteButton class="button" :note="appearNote" />
+					<button ref="menuButton" v-tooltip.noDelay.bottom="i18n.ts.more" class="button _button"
+						@click="menu()">
+						<i class="ph-dots-three-outline-bold ph-lg"></i>
+					</button>
+				</footer>
+			</div>
+		</article>
+		<MkNoteSub v-for="note in directReplies" :key="note.id" :note="note" class="reply" :conversation="replies"
+			@click.self="router.push(notePage(note))" />
+	</div>
+	<div v-else class="_panel muted" @click="muted = false">
+		<I18n :src="i18n.ts.userSaysSomething" tag="small">
+			<template #name>
+				<MkA v-user-preview="appearNote.userId" class="name" :to="userPage(appearNote.user)">
+					<MkUserName :user="appearNote.user" />
 				</MkA>
 			</template>
 		</I18n>
-		<div class="info">
-			<button ref="renoteTime" class="_button time" @click="showRenoteMenu()">
-				<i v-if="isMyRenote" class="ph-dots-three-outline-bold ph-lg dropdownIcon"></i>
-				<MkTime :time="note.createdAt"/>
-			</button>
-			<MkVisibility :note="note"/>
-		</div>
 	</div>
-	<article class="article">
-		<header class="header">
-			<MkAvatar class="avatar" :user="appearNote.user" :show-indicator="true"/>
-			<div class="body">
-				<div class="top">
-					<MkA v-user-preview="appearNote.user.id" class="name" :to="userPage(appearNote.user)">
-						<MkUserName :user="appearNote.user"/>
-					</MkA>
-					<span v-if="appearNote.user.isBot" class="is-bot">bot</span>
-					<div class="info">
-						<MkVisibility :note="appearNote"/>
-					</div>
-				</div>
-				<div class="username"><MkAcct :user="appearNote.user"/></div>
-				<MkInstanceTicker v-if="showTicker" class="ticker" :instance="appearNote.user.instance"/>
-			</div>
-		</header>
-		<div class="main">
-			<div class="body">
-				<p v-if="appearNote.cw != null" class="cw">
-					<Mfm v-if="appearNote.cw != ''" class="text" :text="appearNote.cw" :author="appearNote.user" :i="$i" :custom-emojis="appearNote.emojis"/>
-					<XCwButton v-model="showContent" :note="appearNote"/>
-				</p>
-				<div v-show="appearNote.cw == null || showContent" class="content">
-					<div class="text" @click.self="router.push(notePage(appearNote))">
-						<MkA v-if="appearNote.replyId" class="reply" :to="`/barks/${appearNote.replyId}`"><i class="ph-arrow-bend-up-left-bold ph-lg"></i></MkA>
-						<Mfm v-if="appearNote.text" :text="appearNote.text" :author="appearNote.user" :i="$i" :custom-emojis="appearNote.emojis"/>
-						<a v-if="appearNote.renote != null" class="rp">Echo:</a>
-						<div v-if="translating || translation" class="translation">
-							<MkLoading v-if="translating" mini/>
-							<div v-else class="translated">
-								<b>{{ i18n.t('translatedFrom', { x: translation.sourceLang }) }}: </b>
-								<Mfm :text="translation.text" :author="appearNote.user" :i="$i" :custom-emojis="appearNote.emojis"/>
-							</div>
-						</div>
-					</div>
-					<div v-if="appearNote.files.length > 0" class="files">
-						<XMediaList :media-list="appearNote.files"/>
-					</div>
-					<XPoll v-if="appearNote.poll" ref="pollViewer" :note="appearNote" class="poll"/>
-					<MkUrlPreview v-for="url in urls" :key="url" :url="url" :compact="true" :detail="true" class="url-preview"/>
-					<div v-if="appearNote.renote" class="renote"><XNoteSimple :note="appearNote.renote"/></div>
-				</div>
-				<MkA v-if="appearNote.channel && !inChannel" class="channel" :to="`/channels/${appearNote.channel.id}`"><i class="ph-television-bold ph-lg"></i> {{ appearNote.channel.name }}</MkA>
-			</div>
-			<footer class="footer">
-				<div class="info">
-					<MkA class="created-at" :to="notePage(appearNote)">
-						<MkTime :time="appearNote.createdAt" mode="detail"/>
-					</MkA>
-					<MkA class="barkle-for" :to="notePage(appearNote)">
-						<Mfm v-if="appearNote.barkleFor" :text="appearNote.barkleFor" :author="appearNote.user" :i="$i"/>
-					</MkA>
-				</div>
-				<XReactionsViewer ref="reactionsViewer" :note="appearNote"/>
-				<button v-tooltip.noDelay.bottom="i18n.ts.reply" class="button _button" @click="reply()">
-					<template v-if="appearNote.reply"><i class="ph-arrow-u-up-left-bold ph-lg"></i></template>
-					<template v-else><i class="ph-arrow-bend-up-left-bold ph-lg"></i></template>
-					<p v-if="appearNote.repliesCount > 0" class="count">{{ appearNote.repliesCount }}</p>
-				</button>
-				<XRenoteButton ref="renoteButton" class="button" :note="appearNote" :count="appearNote.renoteCount"/>
-				<XStarButton v-if="appearNote.myReaction == null" ref="starButton" class="button" :note="appearNote"/>
-				<button v-if="appearNote.myReaction == null" ref="reactButton" v-tooltip.noDelay.bottom="i18n.ts.reaction" class="button _button" @click="react()">
-					<i class="ph-smiley-bold ph-lg"></i>
-				</button>
-				<button v-if="appearNote.myReaction != null" ref="reactButton" class="button _button reacted" @click="undoReact(appearNote)">
-					<i class="ph-minus-bold ph-lg"></i>
-				</button>
-				<XQuoteButton class="button" :note="appearNote"/>
-				<button ref="menuButton" v-tooltip.noDelay.bottom="i18n.ts.more" class="button _button" @click="menu()">
-					<i class="ph-dots-three-outline-bold ph-lg"></i>
-				</button>
-			</footer>
-		</div>
-	</article>
-	<MkNoteSub v-for="note in directReplies" :key="note.id" :note="note" class="reply" :conversation="replies" @click.self="router.push(notePage(note))"/>
-</div>
-<div v-else class="_panel muted" @click="muted = false">
-	<I18n :src="i18n.ts.userSaysSomething" tag="small">
-		<template #name>
-			<MkA v-user-preview="appearNote.userId" class="name" :to="userPage(appearNote.user)">
-				<MkUserName :user="appearNote.user"/>
-			</MkA>
-		</template>
-	</I18n>
-</div>
 </template>
 
 <script lang="ts" setup>
@@ -310,14 +321,17 @@ if (appearNote.replyId) {
 </script>
 
 <style lang="scss" scoped>
-.info .created-at, .info .barkle-for {
-    display: block;
+.info .created-at,
+.info .barkle-for {
+	display: block;
 }
+
 .barkle-for {
 	//margin-top: 4px;
 	//color: var(--accent);
 	font-weight: bold;
 }
+
 .lxwezrsl {
 	position: relative;
 	transition: box-shadow 0.1s ease;
@@ -346,16 +360,16 @@ if (appearNote.replyId) {
 		}
 	}
 
-	&:hover > .article > .main > .footer > .button {
+	&:hover>.article>.main>.footer>.button {
 		opacity: 1;
 	}
 
-	> .reply-to {
+	>.reply-to {
 		opacity: 0.7;
 		padding-bottom: 0;
 	}
 
-	> .reply-to-more {
+	>.reply-to-more {
 		opacity: 0.7;
 		cursor: pointer;
 
@@ -364,7 +378,7 @@ if (appearNote.replyId) {
 		}
 	}
 
-	> .renote {
+	>.renote {
 		display: flex;
 		align-items: center;
 		padding: 16px 32px 8px 32px;
@@ -372,7 +386,7 @@ if (appearNote.replyId) {
 		white-space: pre;
 		color: var(--renote);
 
-		> .avatar {
+		>.avatar {
 			flex-shrink: 0;
 			display: inline-block;
 			width: 28px;
@@ -381,57 +395,57 @@ if (appearNote.replyId) {
 			border-radius: 6px;
 		}
 
-		> i {
+		>i {
 			margin-right: 4px;
 		}
 
-		> span {
+		>span {
 			overflow: hidden;
 			flex-shrink: 1;
 			text-overflow: ellipsis;
 			white-space: nowrap;
 
-			> .name {
+			>.name {
 				font-weight: bold;
 			}
 		}
 
-		> .info {
+		>.info {
 			margin-left: auto;
 			font-size: 0.9em;
 
-			> .time {
+			>.time {
 				flex-shrink: 0;
 				color: inherit;
 
-				> .dropdownIcon {
+				>.dropdownIcon {
 					margin-right: 4px;
 				}
 			}
 		}
 	}
 
-	> .renote + .article {
+	>.renote+.article {
 		padding-top: 8px;
 	}
 
-	> .article {
+	>.article {
 		padding: 32px;
 		font-size: 1.2em;
 
-		> .header {
+		>.header {
 			display: flex;
 			position: relative;
 			margin-bottom: 16px;
 
-			> .avatar {
+			>.avatar {
 				display: block;
 				flex-shrink: 0;
 				width: 52px;
 				height: 52px;
 			}
 
-			> .body {
+			>.body {
 				flex: 1;
 				display: flex;
 				flex-direction: column;
@@ -439,12 +453,12 @@ if (appearNote.replyId) {
 				padding-left: 16px;
 				font-size: 0.95em;
 
-				> .top {
-					> .name {
+				>.top {
+					>.name {
 						font-weight: bold;
 					}
 
-					> .is-bot {
+					>.is-bot {
 						flex-shrink: 0;
 						align-self: center;
 						margin: 0 0.5em;
@@ -454,43 +468,43 @@ if (appearNote.replyId) {
 						border-radius: 4px;
 					}
 
-					> .info {
+					>.info {
 						float: right;
 					}
 				}
 			}
 		}
 
-		> .main {
-			> .body {
-				> .cw {
+		>.main {
+			>.body {
+				>.cw {
 					cursor: default;
 					display: block;
 					margin: 0;
 					padding: 0;
 					overflow-wrap: break-word;
 
-					> .text {
+					>.text {
 						margin-right: 8px;
 					}
 				}
 
-				> .content {
-					> .text {
+				>.content {
+					>.text {
 						overflow-wrap: break-word;
 
-						> .reply {
+						>.reply {
 							color: var(--accent);
 							margin-right: 0.5em;
 						}
 
-						> .rp {
+						>.rp {
 							margin-left: 4px;
 							font-style: oblique;
 							color: var(--renote);
 						}
 
-						> .translation {
+						>.translation {
 							border: solid 0.5px var(--divider);
 							border-radius: var(--radius);
 							padding: 12px;
@@ -498,18 +512,18 @@ if (appearNote.replyId) {
 						}
 					}
 
-					> .url-preview {
+					>.url-preview {
 						margin-top: 8px;
 					}
 
-					> .poll {
+					>.poll {
 						font-size: 80%;
 					}
 
-					> .renote {
+					>.renote {
 						padding: 8px 0;
 
-						> * {
+						>* {
 							padding: 16px;
 							border: solid 1px var(--renote);
 							border-radius: 8px;
@@ -517,20 +531,20 @@ if (appearNote.replyId) {
 					}
 				}
 
-				> .channel {
+				>.channel {
 					opacity: 0.7;
 					font-size: 80%;
 				}
 			}
 
-			> .footer {
-				> .info {
+			>.footer {
+				>.info {
 					margin: 16px 0;
 					opacity: 0.7;
 					font-size: 0.9em;
 				}
 
-				> .button {
+				>.button {
 					margin: 0;
 					padding: 8px;
 					opacity: 0.7;
@@ -543,7 +557,7 @@ if (appearNote.replyId) {
 						color: var(--fgHighlighted);
 					}
 
-					> .count {
+					>.count {
 						display: inline;
 						margin: 0 0 0 8px;
 						opacity: 0.7;
@@ -557,7 +571,7 @@ if (appearNote.replyId) {
 		}
 	}
 
-	> .reply {
+	>.reply {
 		border-top: solid 0.5px var(--divider);
 		cursor: pointer;
 
@@ -566,7 +580,9 @@ if (appearNote.replyId) {
 		}
 	}
 
-	> .reply, .reply-to, .reply-to-more {
+	>.reply,
+	.reply-to,
+	.reply-to-more {
 		transition: background-color 0.25s ease-in-out;
 
 		&:hover {
@@ -579,15 +595,15 @@ if (appearNote.replyId) {
 	}
 
 	&.max-width_450px {
-		> .renote {
+		>.renote {
 			padding: 8px 16px 0 16px;
 		}
 
-		> .article {
+		>.article {
 			padding: 16px;
 
-			> .header {
-				> .avatar {
+			>.header {
+				>.avatar {
 					width: 50px;
 					height: 50px;
 				}
@@ -596,10 +612,10 @@ if (appearNote.replyId) {
 	}
 
 	&.max-width_350px {
-		> .article {
-			> .main {
-				> .footer {
-					> .button {
+		>.article {
+			>.main {
+				>.footer {
+					>.button {
 						&:not(:last-child) {
 							margin-right: 18px;
 						}
@@ -612,17 +628,17 @@ if (appearNote.replyId) {
 	&.max-width_300px {
 		font-size: 0.825em;
 
-		> .article {
-			> .header {
-				> .avatar {
+		>.article {
+			>.header {
+				>.avatar {
 					width: 50px;
 					height: 50px;
 				}
 			}
 
-			> .main {
-				> .footer {
-					> .button {
+			>.main {
+				>.footer {
+					>.button {
 						&:not(:last-child) {
 							margin-right: 12px;
 						}

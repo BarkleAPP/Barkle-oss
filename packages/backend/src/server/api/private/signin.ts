@@ -91,9 +91,9 @@ export default async (ctx: Koa.Context) => {
 				default: return false;
 			}
 		});
-		
+
 		const isAllowedUser = instance.preReleaseAllowedUserIds.includes(user.id);
-		
+
 		if (!isAllowedRole && !isAllowedUser) {
 			error(403, {
 				id: 'pre-release-access-denied',
@@ -205,7 +205,7 @@ export default async (ctx: Koa.Context) => {
 				body.credentialId
 					.replace(/-/g, '+')
 					.replace(/_/g, '/'),
-					'base64'
+				'base64'
 			).toString('hex'),
 		});
 
@@ -249,6 +249,8 @@ export default async (ctx: Koa.Context) => {
 		if (keys.length === 0) {
 			await fail(403, {
 				id: 'f27fd449-9af4-4841-9249-1f989b9fa4a4',
+				message: 'Two-factor authentication required. Please enter your token.',
+				code: 'TOTP_REQUIRED',
 			});
 			return;
 		}
