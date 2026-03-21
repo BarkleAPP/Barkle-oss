@@ -227,6 +227,14 @@ export const meta = {
 				type: 'boolean',
 				optional: false, nullable: false,
 			},
+			endOfServiceMode: {
+				type: 'boolean',
+				optional: false, nullable: false,
+			},
+			endOfServiceMessage: {
+				type: 'string',
+				optional: false, nullable: true,
+			},
 			preReleaseAllowedRoles: {
 				type: 'array',
 				optional: false, nullable: false,
@@ -533,6 +541,8 @@ export default define(meta, paramDef, async (ps, me) => {
 		preReleaseMode: instance.preReleaseMode,
 		preReleaseAllowedRoles: instance.preReleaseAllowedRoles,
 		preReleaseAllowedUserIds: instance.preReleaseAllowedUserIds,
+		endOfServiceMode: instance.endOfServiceMode,
+		endOfServiceMessage: instance.endOfServiceMessage,
 		hcaptchaSecretKey: instance.hcaptchaSecretKey,
 		recaptchaSecretKey: instance.recaptchaSecretKey,
 		sensitiveMediaDetection: instance.sensitiveMediaDetection,

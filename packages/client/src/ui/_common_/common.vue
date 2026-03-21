@@ -35,10 +35,12 @@
 <div v-if="dev" style="position: fixed; top: 10px; right: 10px; background: red; color: white; padding: 5px; z-index: 9999;">
 	Popups: {{ popups.length }}
 </div>
+<XEndOfServiceBanner/>
 </template>
 
 <script lang="ts" setup>
 import { defineAsyncComponent, watch, onMounted } from 'vue';
+import XEndOfServiceBanner from './end-of-service-banner.vue';
 import { swInject } from './sw-inject';
 import { popup, popups, pendingApiRequestsCount } from '@/os';
 import { uploads } from '@/scripts/upload';

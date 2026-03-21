@@ -47,6 +47,16 @@ export class Meta {
 	})
 	public preReleaseMode: boolean;
 
+	@Column('boolean', {
+		default: false,
+	})
+	public endOfServiceMode: boolean;
+
+	@Column('varchar', {
+		length: 1024, nullable: true,
+	})
+	public endOfServiceMessage: string | null;
+
 	@Column('varchar', {
 		length: 256, array: true, default: '{staff,admin,moderator,verified}',
 	})

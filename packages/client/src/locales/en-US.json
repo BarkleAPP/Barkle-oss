@@ -2439,6 +2439,16 @@
       "howItWorks1": "The algorithm analyzes your interaction patterns to understand your interests",
       "howItWorks2": "It identifies content outside your usual topics and injects it strategically",
       "howItWorks3": "Your feedback helps improve future recommendations",
-      "howItWorks4": "You can adjust your exploration level to control how much diverse content you see"
+      "howItWorks4": "You can adjust your exploration level to control how much diverse content you see",
+      "endOfServiceMode": "End of Service Mode",
+      "endOfServiceModeDescription": "Barkle is entering end of service. The platform is now in read-only mode.",
+      "endOfServiceModeCaption": "When enabled, all write operations are blocked. Users can still view content, download their data, or delete their account.",
+      "endOfServiceMessage": "End of Service Message",
+      "endOfServiceMessageCaption": "Optional custom message shown to users while in End of Service mode.",
+      "endOfServiceBannerTitle": "Barkle is shutting down",
+      "endOfServiceBannerText": "This platform has entered End of Service mode. You can still view content, download your data, or delete your account.",
+      "endOfServiceDownloadData": "Download Your Data",
+      "endOfServiceDeleteAccount": "Delete Your Account",
+      "endOfServiceReadOnly": "Read-only mode is active"
    }
 }

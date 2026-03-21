@@ -65,6 +65,21 @@
 					</FormSection>
 
 					<FormSection>
+						<template #label>{{ i18n.ts.endOfServiceMode }}</template>
+						<FormInfo class="_formBlock">{{ i18n.ts.endOfServiceModeCaption }}</FormInfo>
+
+						<FormSwitch v-model="endOfServiceMode" class="_formBlock">
+							<template #label>{{ i18n.ts.endOfServiceMode }}</template>
+							<template #caption>{{ i18n.ts.endOfServiceModeCaption }}</template>
+						</FormSwitch>
+
+						<FormTextarea v-if="endOfServiceMode" v-model="endOfServiceMessage" class="_formBlock">
+							<template #label>{{ i18n.ts.endOfServiceMessage }}</template>
+							<template #caption>{{ i18n.ts.endOfServiceMessageCaption }}</template>
+						</FormTextarea>
+					</FormSection>
+
+					<FormSection>
 						<FormSwitch v-model="enableRecommendedTimeline" class="_formBlock">{{ i18n.ts.enableRecommendedTimeline }}</FormSwitch>
 						<FormTextarea v-model="recommendedInstances" class="_formBlock">
 							<template #label>{{ i18n.ts.recommendedInstances }}</template>
@@ -300,6 +315,8 @@ let emailRequiredForSignup: boolean = $ref(false);
 let preReleaseMode: boolean = $ref(false);
 let preReleaseAllowedRoles: string = $ref('');
 let preReleaseAllowedUserIds: string = $ref('');
+let endOfServiceMode: boolean = $ref(false);
+let endOfServiceMessage: string = $ref('');
 let enableServiceWorker: boolean = $ref(false);
 let swPublicKey: any = $ref(null);
 let swPrivateKey: any = $ref(null);
@@ -350,6 +367,8 @@ async function init() {
 	preReleaseMode = meta.preReleaseMode || false;
 	preReleaseAllowedRoles = meta.preReleaseAllowedRoles ? meta.preReleaseAllowedRoles.join(',') : 'staff,admin,moderator,verified';
 	preReleaseAllowedUserIds = meta.preReleaseAllowedUserIds ? meta.preReleaseAllowedUserIds.join(',') : '';
+	endOfServiceMode = meta.endOfServiceMode || false;
+	endOfServiceMessage = meta.endOfServiceMessage || '';
 	enableServiceWorker = meta.enableServiceWorker;
 	swPublicKey = meta.swPublickey;
 	swPrivateKey = meta.swPrivateKey;
@@ -401,6 +420,8 @@ function save() {
 		preReleaseMode,
 		preReleaseAllowedRoles: preReleaseAllowedRoles.split(',').map(role => role.trim()).filter(Boolean),
 		preReleaseAllowedUserIds: preReleaseAllowedUserIds.split(',').map(id => id.trim()).filter(Boolean),
+		endOfServiceMode,
+		endOfServiceMessage: endOfServiceMessage === '' ? null : endOfServiceMessage,
 		enableServiceWorker,
 		swPublicKey,
 		swPrivateKey,
