@@ -7,10 +7,10 @@
 			<span class="eos-desc">{{ instance.endOfServiceMessage || i18n.ts._diversity.endOfServiceBannerText }}</span>
 		</div>
 		<div class="eos-actions">
-			<MkA v-if="$i" href="/settings/data-export" class="eos-action-btn">
+			<MkA v-if="$i" to="/settings/import-export" behavior="browser" class="eos-action-btn">
 				<i class="ph-download-bold ph-sm"></i> {{ i18n.ts._diversity.endOfServiceDownloadData }}
 			</MkA>
-			<MkA v-if="$i" href="/settings/delete-account" class="eos-action-btn eos-action-btn--danger">
+			<MkA v-if="$i" to="/settings/delete-account" behavior="browser" class="eos-action-btn eos-action-btn--danger">
 				<i class="ph-trash-bold ph-sm"></i> {{ i18n.ts._diversity.endOfServiceDeleteAccount }}
 			</MkA>
 		</div>
